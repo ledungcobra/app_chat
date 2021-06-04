@@ -6,11 +6,12 @@ import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
+import java.io.Serializable;
 import java.util.Date;
 
 @MappedSuperclass
 @Data
-public abstract class BaseEntity
+public abstract class BaseEntity implements Serializable
 {
 
     @Column(name = "CREATED_AT", nullable = false)

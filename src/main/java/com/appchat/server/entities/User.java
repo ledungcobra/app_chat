@@ -28,9 +28,6 @@ public class User extends BaseEntity
     @Column(name = "DISPLAY_NAME", nullable = false)
     private String displayName;
 
-    @Column(name = "EMAIL", unique = true, nullable = false)
-    private String email;
-
 
     @OneToMany(mappedBy = "receiver")
     private List<PrivateMessage> messages;

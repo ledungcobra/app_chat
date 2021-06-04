@@ -5,20 +5,33 @@
  */
 package com.appchat.client.view;
 
+import com.appchat.client.context.CApplicationContext;
+import com.appchat.server.dto.Command;
+import com.appchat.server.dto.CommandObject;
+import com.appchat.server.entities.User;
+import com.appchat.utils.Constaints;
+import javafx.application.Application;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 /**
- *
  * @author ledun
  */
 public class LoginScreen extends AbstractScreen
 {
 
-
     @Override
     public void onCreateView()
     {
         initComponents();
+        ImageIcon icon = new ImageIcon("loading.gif");
+        this.loadingLbl.setIcon(icon);
+        this.loadingLbl.setText("loading ....");
+        this.loadingLbl.setVisible(false);
     }
 
     @Override
@@ -30,11 +43,79 @@ public class LoginScreen extends AbstractScreen
 
     private void registerActionPerformed(ActionEvent actionEvent)
     {
+        connector.connectAsync(result -> {
+            if (result)
+            {
+            }
+        }, error -> {
 
+        });
     }
 
     private void loginBtnActionPerformed(ActionEvent e)
     {
+        connector.connectAsync(result -> {
+            System.out.println("RUN");
+            if (result)
+            {
+                try
+                {
+                    login();
+                } catch (Exception executionException)
+                {
+                    executionException.printStackTrace();
+                }
+            } else
+            {
+                JOptionPane.showMessageDialog(LoginScreen.this, Constaints.CANNOT_CONNECT_MSG);
+            }
+        }, error -> {
+
+        });
+    }
+
+    public void stopLoading()
+    {
+        try
+        {
+            SwingUtilities.invokeAndWait(() -> this.loadingLbl.setVisible(false));
+        } catch (InterruptedException | InvocationTargetException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void startLoading()
+    {
+        try
+        {
+            SwingUtilities.invokeAndWait(() -> this.loadingLbl.setVisible(true));
+        } catch (InterruptedException | InvocationTargetException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void login() throws ExecutionException, InterruptedException
+    {
+        startLoading();
+        CommandObject commandObject = new CommandObject();
+        commandObject.setCommand(Command.C2S_LOGIN);
+
+        User user = new User();
+        user.setUserName(userNameTextField.getText());
+        user.setPassword(new String(passwordTextField.getPassword()));
+
+        commandObject.setPayload(user);
+        CApplicationContext.tcpClient.sendRequestAsync(commandObject).get();
+
+        connector.listenAsync(Arrays.asList(Command.S2C_LOGIN_ACK, Command.S2C_LOGIN_NACK), result -> {
+            stopLoading();
+            System.out.println(result);
+        }, error -> {
+            stopLoading();
+
+        }, 2000);
 
     }
 
@@ -45,7 +126,8 @@ public class LoginScreen extends AbstractScreen
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+    private void initComponents()
+    {
 
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -75,54 +157,54 @@ public class LoginScreen extends AbstractScreen
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 330, Short.MAX_VALUE)
-                        .addComponent(registerBtn)
-                        .addGap(47, 47, 47)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jCheckBox1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(32, 32, 32)
-                        .addComponent(loadingLbl)
-                        .addGap(198, 198, 198))
-                    .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel2)
-                            .addComponent(jLabel3))
-                        .addGap(27, 27, 27)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(passwordTextField)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel1)
-                                .addGap(0, 0, Short.MAX_VALUE))
-                            .addComponent(userNameTextField))))
-                .addContainerGap())
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                                .addGap(0, 330, Short.MAX_VALUE)
+                                                .addComponent(registerBtn)
+                                                .addGap(47, 47, 47)
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                                        .addComponent(jCheckBox1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                                .addGap(32, 32, 32)
+                                                .addComponent(loadingLbl)
+                                                .addGap(198, 198, 198))
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addContainerGap()
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(jLabel2)
+                                                        .addComponent(jLabel3))
+                                                .addGap(27, 27, 27)
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(passwordTextField)
+                                                        .addGroup(layout.createSequentialGroup()
+                                                                .addComponent(jLabel1)
+                                                                .addGap(0, 0, Short.MAX_VALUE))
+                                                        .addComponent(userNameTextField))))
+                                .addContainerGap())
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(103, 103, 103)
-                .addComponent(jLabel1)
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(userNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(passwordTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addComponent(jCheckBox1)
-                .addGap(4, 4, 4)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(loginBtn)
-                    .addComponent(registerBtn)
-                    .addComponent(loadingLbl))
-                .addContainerGap(98, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addGap(103, 103, 103)
+                                .addComponent(jLabel1)
+                                .addGap(18, 18, 18)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel2)
+                                        .addComponent(userNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel3)
+                                        .addComponent(passwordTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addComponent(jCheckBox1)
+                                .addGap(4, 4, 4)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(loginBtn)
+                                        .addComponent(registerBtn)
+                                        .addComponent(loadingLbl))
+                                .addContainerGap(98, Short.MAX_VALUE))
         );
 
         pack();

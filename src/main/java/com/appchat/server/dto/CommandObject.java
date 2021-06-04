@@ -11,4 +11,6 @@ public class CommandObject implements Serializable {
     protected Command command;
     protected Object payload;
     private Future<?> result;
+
+
 }

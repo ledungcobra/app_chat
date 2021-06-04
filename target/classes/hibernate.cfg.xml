@@ -9,7 +9,7 @@
         <property name="hibernate.connection.password">Anhchang01</property>
         <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
 
-        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/test2</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/test1</property>
         <property name="hibernate.connection.pool_size">5</property>
 
         <property name="hibernate.show_sql">true</property>
@@ -19,9 +19,18 @@
         <property name="hibernate.connection.autocommit">false</property>
         <!--        Method to auto generate database-->
 
-        <!--        <property name="hbm2ddl.auto">create-drop</property>-->
+<!--        <property name="hbm2ddl.auto">create-drop</property>-->
         <property name="format_sql">true</property>
 
-        <mapping></mapping>
+
+        <mapping class="com.appchat.server.entities.User"/>
+        <mapping class="com.appchat.server.entities.VideoCall"/>
+
+        <mapping class="com.appchat.server.entities.Group"/>
+        <mapping class="com.appchat.server.entities.GroupFile"/>
+        <mapping class="com.appchat.server.entities.GroupMessage"/>
+
+        <mapping class="com.appchat.server.entities.PrivateFile"/>
+        <mapping class="com.appchat.server.entities.PrivateMessage"/>
     </session-factory>
 </hibernate-configuration>

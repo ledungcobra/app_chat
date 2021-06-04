@@ -11,6 +11,7 @@ import com.appchat.utils.SocketExtension;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.val;
+import org.h2.util.json.JSONTarget;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.*;
@@ -28,7 +29,6 @@ public class TCPServer implements Closeable
     public static final String USER_NOT_FOUND = "User not found";
     public static final String USRNAME_PWD_FAIL = "User name or password wrong please check it";
     public static final String REGISTER_SUCCESS = "Register success";
-    public static final String SALT = "SALT";
     private ServerSocket socket;
     private ConcurrentMap<User, Socket> currentOnlineUsers;
     private final ConcurrentLinkedQueue queue = new ConcurrentLinkedQueue<>();
@@ -101,13 +101,16 @@ public class TCPServer implements Closeable
     public boolean handleRequest(final Socket clientSocket)
     {
         ObjectInputStream oip = SocketExtension.getObjectInputStream(clientSocket);
-        if (oip != null)
+
+        try
         {
             CommandObject commandObject = (CommandObject) oip.readObject();
+            System.out.println("HANDLE REQUEST");
             switch (commandObject.getCommand())
             {
                 case C2S_LOGIN:
                 {
+                    System.out.println(commandObject);
                     return handleLogin(clientSocket, commandObject);
                 }
                 case C2S_REGISTER:
@@ -122,7 +125,12 @@ public class TCPServer implements Closeable
                 case C2S_EXIT:
                     return true;
             }
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            return true;
         }
+
         return false;
     }
 
@@ -182,9 +190,7 @@ public class TCPServer implements Closeable
         {
             response.setCommand(Command.S2C_LOGIN_NACK);
             response.setPayload(USER_NOT_FOUND);
-            responseRequest(clientSocket, response);
-
-            return true;
+            return responseRequest(clientSocket, response).get();
         }
 
         User userInDb = userService.findByUserName(user.getUserName()).get();
@@ -193,8 +199,8 @@ public class TCPServer implements Closeable
         {
             response.setCommand(Command.S2C_LOGIN_NACK);
             response.setPayload(USER_NOT_FOUND);
-            responseRequest(clientSocket, response);
-            return true;
+
+            return responseRequest(clientSocket, response).get();
         } else
         {
             if (userInDb.getUserName().equals(user.getUserName()) &&
@@ -235,6 +241,7 @@ public class TCPServer implements Closeable
         {
             response.setCommand(Command.S2C_LOGIN_NACK);
             response.setPayload(USER_NOT_FOUND);
+
             responseRequest(clientSocket, response);
             return true;
         }
@@ -243,7 +250,7 @@ public class TCPServer implements Closeable
 
         if (userInDb == null)
         {
-            user.setPassword(BCrypt.hashpw(user.getPassword(), SALT));
+            user.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt(4)));
             response.setCommand(Command.S2C_REGISTER_ACK);
             response.setPayload(user);
 
@@ -269,11 +276,11 @@ public class TCPServer implements Closeable
     public Future<Boolean> responseRequest(final Socket clientSocket, CommandObject commandObject)
     {
         return SApplicationContext.service.submit(() -> {
-            try (ObjectOutputStream objectOutputStream = SocketExtension.getObjectOutputStream(clientSocket);)
+            ObjectOutputStream objectOutputStream = SocketExtension.getObjectOutputStream(clientSocket);
+            try
             {
                 objectOutputStream.writeObject(commandObject);
                 objectOutputStream.flush();
-
                 return true;
             } catch (IOException e)
             {

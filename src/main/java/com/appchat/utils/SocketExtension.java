@@ -20,8 +20,7 @@ public class SocketExtension
         return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
     }
 
-    @SneakyThrows
-    public static ObjectInputStream getObjectInputStream(@NonNull Socket socket)
+    public static ObjectInputStream getObjectInputStream(@NonNull Socket socket) throws IOException
     {
         return new ObjectInputStream(socket.getInputStream());
     }

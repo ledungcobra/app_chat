@@ -2,13 +2,16 @@ package com.appchat.client.context;
 
 import com.appchat.client.core.TCPClient;
 
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CApplicationContext
 {
     public static final ExecutorService service;
     public static final TCPClient tcpClient;
+    public static Socket clientSocket;
 
     static
     {

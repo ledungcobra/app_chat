@@ -1,5 +1,6 @@
 package com.appchat.client.view;
 
+import com.appchat.utils.Connector;
 import com.appchat.utils.ScreenStackManager;
 import lombok.val;
 
@@ -10,13 +11,14 @@ import java.util.Map;
 
 public abstract class AbstractScreen extends JFrame
 {
-
+    protected Connector connector;
     protected Map<String, Object> data;
 
 
     public AbstractScreen() throws HeadlessException
     {
 
+        connector = new Connector();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setVisible(false);
 
