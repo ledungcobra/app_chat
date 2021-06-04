@@ -1,0 +1,34 @@
+package com.appchat.server.entities;
+
+import lombok.Data;
+
+import javax.persistence.Column;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
+import java.util.Date;
+
+@MappedSuperclass
+@Data
+public abstract class BaseEntity
+{
+
+    @Column(name = "CREATED_AT", nullable = false)
+    private Date createdAt;
+
+    @Column(name = "UPDATED_AT", nullable = false)
+    private Date updatedAt;
+
+    @PrePersist
+    public void prePersist()
+    {
+        this.createdAt = new Date();
+    }
+
+    @PreUpdate
+    public void preUpdate()
+    {
+        this.updatedAt = new Date();
+    }
+
+}
