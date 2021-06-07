@@ -23,14 +23,14 @@
         <property name="format_sql">true</property>
 
 
-        <mapping class="com.appchat.server.entities.User"/>
-        <mapping class="com.appchat.server.entities.VideoCall"/>
+        <mapping class="server.entities.User"/>
+        <mapping class="server.entities.VideoCall"/>
 
-        <mapping class="com.appchat.server.entities.Group"/>
-        <mapping class="com.appchat.server.entities.GroupFile"/>
-        <mapping class="com.appchat.server.entities.GroupMessage"/>
+        <mapping class="server.entities.Group"/>
+        <mapping class="server.entities.GroupFile"/>
+        <mapping class="server.entities.GroupMessage"/>
 
-        <mapping class="com.appchat.server.entities.PrivateFile"/>
-        <mapping class="com.appchat.server.entities.PrivateMessage"/>
+        <mapping class="server.entities.PrivateFile"/>
+        <mapping class="server.entities.PrivateMessage"/>
     </session-factory>
 </hibernate-configuration>

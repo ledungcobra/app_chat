@@ -1,0 +1,31 @@
+package common.dto;
+
+public  enum Command
+{
+
+    C2S_SEND_PRIVATE_MESSAGE,
+    S2C_SEND_PRIVATE_MESSAGE,
+
+    C2S_SEND_GROUP_MESSAGE,
+    S2S_SEND_GROUP_MESSAGE,
+
+
+    C2S_LOGIN,
+    S2C_LOGIN_ACK,
+    S2C_LOGIN_NACK,
+
+    C2S_REGISTER,
+    S2C_REGISTER_ACK,
+    S2C_REGISTER_NACK,
+
+    S2C_STILL_CONNECT,
+    C2S_STILL_CONNECT,
+
+    C2S_PING,
+    S2C_PING_OK,
+
+
+    C2S_EXIT,
+    S2C_EXIT
+
+}
