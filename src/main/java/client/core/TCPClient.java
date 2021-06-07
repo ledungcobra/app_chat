@@ -39,9 +39,11 @@ public class TCPClient implements Closeable
 
     public Socket connect() throws IOException
     {
+
         this.socket = new Socket(HOST, PORT);
         oos = SocketExtension.getObjectOutputStream(this.socket);
         ois = SocketExtension.getObjectInputStream(this.socket);
+
         return this.socket;
     }
 
@@ -96,9 +98,7 @@ public class TCPClient implements Closeable
     public void listeningOnEventAsync()
     {
         System.out.println("CLIENT LISTENING");
-
         this.isListening.set(true);
-
         CApplicationContext.service.submit(() -> {
             while (isListening.get())
             {
@@ -124,8 +124,7 @@ public class TCPClient implements Closeable
                 object = (CommandObject) ois.readObject();
             } catch (Exception e)
             {
-            } finally
-            {
+                object = null;
             }
         }
 
@@ -157,5 +156,12 @@ public class TCPClient implements Closeable
     public void addListener(ResponseHandler handler)
     {
         this.handlers.add(handler);
+    }
+
+    public void reconnect() throws IOException
+    {
+        connect();
+        listeningOnEventAsync();
+
     }
 }

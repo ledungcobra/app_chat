@@ -27,14 +27,13 @@ public class TCPServer implements Closeable
     private ServerSocket socket;
     private PrivateMessageService privateMessageService = SApplicationContext.privateMessageService;
     private final Map<Socket, ObjectInputStream> objectInputStreamMap;
-    private Map<Socket, ObjectOutputStream> objectOutputStreamMap;
+    private final Map<Socket, ObjectOutputStream> objectOutputStreamMap;
 
     public TCPServer() throws IOException
     {
         this.socket = new ServerSocket(PORT);
         this.objectInputStreamMap = new HashMap<>();
         this.objectOutputStreamMap = new HashMap<>();
-
     }
 
 
@@ -132,7 +131,6 @@ public class TCPServer implements Closeable
 
 
         }
-
 
     }
 

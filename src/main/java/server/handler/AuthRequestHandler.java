@@ -1,12 +1,14 @@
 package server.handler;
 
-import server.context.SApplicationContext;
 import common.dto.Command;
 import common.dto.CommandObject;
-import server.entities.User;
-import server.service.UserService;
+import common.dto.ObjectMapper;
+import common.dto.UserDto;
 import lombok.SneakyThrows;
 import org.mindrot.jbcrypt.BCrypt;
+import server.context.SApplicationContext;
+import server.entities.User;
+import server.service.UserService;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -46,8 +48,6 @@ public class AuthRequestHandler extends RequestHandler
 
         if (userInDb == null)
         {
-
-
             sendResponseAsync(new CommandObject(Command.S2C_LOGIN_NACK, USER_NOT_FOUND));
 
             CommandObject exitCommand = new CommandObject();
@@ -62,10 +62,10 @@ public class AuthRequestHandler extends RequestHandler
             {
                 // Success login
                 response.setCommand(Command.S2C_LOGIN_ACK);
-                userInDb.getMessages();
-
-                response.setPayload(userInDb);
+                
+                response.setPayload(ObjectMapper.<User, UserDto>map(userInDb));
                 currentOnlineUsers.put(user, socket);
+
             } else
             {
                 response.setCommand(Command.S2C_LOGIN_NACK);
@@ -96,16 +96,42 @@ public class AuthRequestHandler extends RequestHandler
             response.setCommand(Command.S2C_REGISTER_ACK);
             userService.insert(user).get();
 
-            response.setPayload(user);
+            response.setPayload(ObjectMapper.<User, UserDto>map(user));
+
             sendResponseAsync(response);
 
         } else
         {
-            response.setCommand(Command.S2C_REGISTER_ACK);
+            response.setCommand(Command.S2C_REGISTER_NACK);
             response.setPayload("User already exist please take another username");
             sendResponseAsync(response);
         }
     }
+
+//    public UserDto mapUserToUserDto(User user)
+//    {
+//
+//        val userDto = ObjectMapper.<User, UserDto>map(user);
+//        val friendDtos = user.getFriendships().stream()
+//                .map(f -> ObjectMapper.<User, FriendDto>map(f.getPartner()))
+//                .collect(Collectors.toList());
+//        val privateMessageDtos = user.getMessages()
+//                .stream()
+//                .map(m -> {
+//                    val messageDto = ObjectMapper.<PrivateMessage, PrivateMessageDto>map(m);
+//                    messageDto.setReceiver(userDto);
+//                    messageDto.setSender(ObjectMapper.<User, UserDto>map(m.getSender()));
+//
+//                    return messageDto;
+//                }).collect(Collectors.toList());
+//
+//        val groupDtos = user.getGroups()
+//                .stream()
+//                .map(g-> ObjectMapper.<Group, GroupDto>map(g))
+//                .collect(Collectors.toList());
+//
+//
+//    }
 
     @Override
     public Optional<Consumer<CommandObject>> getHandle(Command command)
@@ -119,7 +145,6 @@ public class AuthRequestHandler extends RequestHandler
         }
 
         return Optional.empty();
-
     }
 
 }

@@ -11,7 +11,7 @@ import java.util.List;
 @Table(name = "GROUP_CHAT")
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class Group extends BaseEntity
 {
     @Id

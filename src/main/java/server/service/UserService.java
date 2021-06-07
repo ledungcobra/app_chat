@@ -15,6 +15,8 @@ public class UserService extends BaseService<User, Long>
         this.dao = SApplicationContext.userDao;
     }
 
+
+
     public Future<User> findByUserName(String userName)
     {
         return service.submit(() -> {

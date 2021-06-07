@@ -26,36 +26,33 @@
           <Group type="102" attributes="0">
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Group type="102" alignment="0" attributes="0">
-                      <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="jLabel2" alignment="0" min="-2" max="-2" attributes="0"/>
-                          <Component id="jLabel3" alignment="0" min="-2" max="-2" attributes="0"/>
-                          <Component id="displayNameLbl" alignment="0" min="-2" max="-2" attributes="0"/>
-                      </Group>
-                      <EmptySpace min="-2" pref="27" max="-2" attributes="0"/>
-                      <Group type="103" groupAlignment="0" attributes="0">
-                          <Group type="102" alignment="0" attributes="0">
-                              <EmptySpace min="0" pref="485" max="32767" attributes="0"/>
-                              <Component id="loadingLbl" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace min="-2" pref="198" max="-2" attributes="0"/>
-                          </Group>
-                          <Component id="passwordTextField" max="32767" attributes="0"/>
-                          <Component id="userNameTextField" max="32767" attributes="0"/>
-                          <Group type="102" attributes="0">
-                              <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
-                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
-                          </Group>
-                          <Component id="displayNameTextField" max="32767" attributes="0"/>
-                      </Group>
-                  </Group>
-                  <Group type="102" alignment="1" attributes="0">
-                      <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                  <Component id="jLabel2" alignment="0" min="-2" max="-2" attributes="0"/>
+                  <Component id="jLabel3" alignment="0" min="-2" max="-2" attributes="0"/>
+                  <Component id="displayNameLbl" alignment="0" min="-2" max="-2" attributes="0"/>
+              </Group>
+              <EmptySpace min="-2" pref="27" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <Group type="102" attributes="0">
+                      <Component id="isRegisterCheck" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace max="32767" attributes="0"/>
                       <Group type="103" groupAlignment="0" max="-2" attributes="0">
                           <Component id="loginBtn" max="32767" attributes="0"/>
                           <Component id="registerBtn" alignment="0" max="32767" attributes="0"/>
-                          <Component id="jCheckBox1" alignment="0" min="-2" pref="194" max="-2" attributes="0"/>
+                          <Component id="rememberMeCheck" alignment="0" min="-2" pref="194" max="-2" attributes="0"/>
                       </Group>
                   </Group>
+                  <Group type="102" alignment="0" attributes="0">
+                      <EmptySpace min="0" pref="485" max="32767" attributes="0"/>
+                      <Component id="loadingLbl" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace min="-2" pref="198" max="-2" attributes="0"/>
+                  </Group>
+                  <Component id="passwordTextField" max="32767" attributes="0"/>
+                  <Component id="userNameTextField" max="32767" attributes="0"/>
+                  <Group type="102" attributes="0">
+                      <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                  </Group>
+                  <Component id="displayNameTextField" max="32767" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
           </Group>
@@ -67,7 +64,7 @@
               <EmptySpace min="-2" pref="103" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="1" attributes="0">
                   <Group type="102" attributes="0">
-                      <Component id="jCheckBox1" min="-2" max="-2" attributes="0"/>
+                      <Component id="rememberMeCheck" min="-2" max="-2" attributes="0"/>
                       <EmptySpace max="-2" attributes="0"/>
                       <Component id="registerBtn" min="-2" max="-2" attributes="0"/>
                       <EmptySpace max="-2" attributes="0"/>
@@ -90,7 +87,9 @@
                           <Component id="displayNameTextField" alignment="3" min="-2" max="-2" attributes="0"/>
                           <Component id="displayNameLbl" alignment="3" min="-2" max="-2" attributes="0"/>
                       </Group>
-                      <EmptySpace min="-2" pref="96" max="-2" attributes="0"/>
+                      <EmptySpace type="unrelated" max="-2" attributes="0"/>
+                      <Component id="isRegisterCheck" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace min="-2" pref="64" max="-2" attributes="0"/>
                       <Component id="loadingLbl" min="-2" max="-2" attributes="0"/>
                   </Group>
               </Group>
@@ -127,7 +126,7 @@
         <Property name="text" type="java.lang.String" value="Login"/>
       </Properties>
     </Component>
-    <Component class="javax.swing.JCheckBox" name="jCheckBox1">
+    <Component class="javax.swing.JCheckBox" name="rememberMeCheck">
       <Properties>
         <Property name="text" type="java.lang.String" value="Remember me"/>
       </Properties>
@@ -144,6 +143,11 @@
     <Component class="javax.swing.JLabel" name="displayNameLbl">
       <Properties>
         <Property name="text" type="java.lang.String" value="Display name"/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JCheckBox" name="isRegisterCheck">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Register form"/>
       </Properties>
     </Component>
   </SubComponents>

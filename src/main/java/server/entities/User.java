@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -39,4 +40,20 @@ public class User extends BaseEntity
     private List<Group> groups;
 
 
+
+    @OneToMany(mappedBy = "owner")
+    private List<FriendShip> friendships;
+
+    public List<FriendShip> getFriendships()
+    {
+        if (friendships == null)
+            this.friendships = new ArrayList<>();
+        return friendships;
+    }
+
+    public List<Group> getGroups()
+    {
+        if(groups == null)  this.groups = new ArrayList<>();
+        return groups;
+    }
 }

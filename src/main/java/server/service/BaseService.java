@@ -18,6 +18,10 @@ public abstract class BaseService<T extends BaseEntity, ID extends Serializable>
     {
     }
 
+    public Future<T> findById(ID id){
+        return service.submit(()-> dao.find(id));
+    }
+
     public Future<T> insert(T obj)
     {
         return service.submit(() -> {
