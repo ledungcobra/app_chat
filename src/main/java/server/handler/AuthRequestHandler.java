@@ -71,6 +71,7 @@ public class AuthRequestHandler extends RequestHandler
                 response.setCommand(Command.S2C_LOGIN_NACK);
                 response.setPayload(USRNAME_PWD_FAIL);
             }
+            sendResponseAsync(response);
         }
     }
 
@@ -93,9 +94,11 @@ public class AuthRequestHandler extends RequestHandler
         {
             user.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt(4)));
             response.setCommand(Command.S2C_REGISTER_ACK);
+            userService.insert(user).get();
+
             response.setPayload(user);
             sendResponseAsync(response);
-            userService.insert(user);
+
         } else
         {
             response.setCommand(Command.S2C_REGISTER_ACK);

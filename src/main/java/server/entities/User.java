@@ -25,7 +25,7 @@ public class User extends BaseEntity
     @Column(name = "PASSWORD", nullable = false)
     private String password;
 
-    @Column(name = "DISPLAY_NAME", nullable = false)
+    @Column(name = "DISPLAY_NAME")
     private String displayName;
 
 

@@ -36,9 +36,8 @@ public class TCPClient implements Closeable
         handlers = new CopyOnWriteArrayList<>();
     }
 
-    @SneakyThrows(value = {UnknownHostException.class, IOException.class, SecurityException.class, IllegalStateException.class})
 
-    public Socket connect()
+    public Socket connect() throws IOException
     {
         this.socket = new Socket(HOST, PORT);
         oos = SocketExtension.getObjectOutputStream(this.socket);

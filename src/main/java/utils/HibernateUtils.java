@@ -72,6 +72,7 @@ public class HibernateUtils
             transaction.commit();
         } catch (Exception ex)
         {
+            ex.printStackTrace();
             if (transaction != null && transaction.isActive())
             {
                 transaction.rollback();

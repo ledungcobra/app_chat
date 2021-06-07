@@ -11,6 +11,7 @@ import common.dto.Command;
 import common.dto.CommandObject;
 import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
+import lombok.val;
 import server.entities.User;
 
 import javax.swing.*;
@@ -54,7 +55,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
 
     private void registerActionPerformed(ActionEvent actionEvent)
     {
-
+        registerAsync();
     }
 
     @SneakyThrows
@@ -68,18 +69,16 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
         CApplicationContext.service.submit(() -> {
             try
             {
-                if (!tcpClient.stillAlive())
-                {
-                    tcpClient.connect();
-                }
-
                 User user = new User();
                 user.setUserName(userNameTextField.getText());
                 user.setPassword(new String(passwordTextField.getPassword()));
 
-                tcpClient.sendRequestAsync(new CommandObject(Command.C2S_LOGIN, user));
+                tcpClient.sendRequestAsync(new CommandObject(Command.C2S_REGISTER, user));
             } catch (Exception e)
             {
+                runOnUiThread(() -> {
+                    JOptionPane.showMessageDialog(LoginScreen.this, e.getMessage());
+                });
                 e.printStackTrace();
             }
         });
@@ -91,18 +90,20 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
         CApplicationContext.service.submit(() -> {
             try
             {
-                if (!tcpClient.stillAlive())
-                {
-                    tcpClient.connect();
-                }
-
                 User user = new User();
                 user.setUserName(userNameTextField.getText());
                 user.setPassword(new String(passwordTextField.getPassword()));
 
-                tcpClient.sendRequestAsync(new CommandObject(Command.C2S_LOGIN, user));
+                val success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
+                if (!success)
+                {
+                    throw new Exception("Cannot login fail because the server is offline");
+                }
             } catch (Exception e)
             {
+                runOnUiThread(() -> {
+                    JOptionPane.showMessageDialog(LoginScreen.this, e.getMessage());
+                });
                 e.printStackTrace();
             }
         });
@@ -117,22 +118,23 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents()
-    {
+    private void initComponents() {
 
-        jLabel1 = new JLabel();
-        jLabel2 = new JLabel();
-        jLabel3 = new JLabel();
-        userNameTextField = new JTextField();
-        passwordTextField = new JPasswordField();
-        loginBtn = new JButton();
-        jCheckBox1 = new JCheckBox();
-        registerBtn = new JButton();
-        loadingLbl = new JLabel();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        userNameTextField = new javax.swing.JTextField();
+        passwordTextField = new javax.swing.JPasswordField();
+        loginBtn = new javax.swing.JButton();
+        jCheckBox1 = new javax.swing.JCheckBox();
+        registerBtn = new javax.swing.JButton();
+        loadingLbl = new javax.swing.JLabel();
+        displayNameTextField = new javax.swing.JTextField();
+        displayNameLbl = new javax.swing.JLabel();
 
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel1.setFont(new Font("Times New Roman", 3, 24)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Times New Roman", 3, 24)); // NOI18N
         jLabel1.setText("Quick Chat");
 
         jLabel2.setText("Username");
@@ -145,57 +147,68 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
 
         registerBtn.setText("Register");
 
-        GroupLayout layout = new GroupLayout(getContentPane());
+        displayNameLbl.setText("Display name");
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                .addGap(0, 330, Short.MAX_VALUE)
-                                                .addComponent(registerBtn)
-                                                .addGap(47, 47, 47)
-                                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING, false)
-                                                        .addComponent(jCheckBox1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                        .addComponent(loginBtn, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                                .addGap(32, 32, 32)
-                                                .addComponent(loadingLbl)
-                                                .addGap(198, 198, 198))
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addContainerGap()
-                                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                                        .addComponent(jLabel2)
-                                                        .addComponent(jLabel3))
-                                                .addGap(27, 27, 27)
-                                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                                        .addComponent(passwordTextField)
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(jLabel1)
-                                                                .addGap(0, 0, Short.MAX_VALUE))
-                                                        .addComponent(userNameTextField))))
-                                .addContainerGap())
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel3)
+                            .addComponent(displayNameLbl))
+                        .addGap(27, 27, 27)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(0, 485, Short.MAX_VALUE)
+                                .addComponent(loadingLbl)
+                                .addGap(198, 198, 198))
+                            .addComponent(passwordTextField)
+                            .addComponent(userNameTextField)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel1)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addComponent(displayNameTextField)))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(registerBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jCheckBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
-                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGap(103, 103, 103)
-                                .addComponent(jLabel1)
-                                .addGap(18, 18, 18)
-                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel2)
-                                        .addComponent(userNameTextField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addGap(18, 18, 18)
-                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel3)
-                                        .addComponent(passwordTextField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                                .addGap(18, 18, 18)
-                                .addComponent(jCheckBox1)
-                                .addGap(4, 4, 4)
-                                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(loginBtn)
-                                        .addComponent(registerBtn)
-                                        .addComponent(loadingLbl))
-                                .addContainerGap(98, Short.MAX_VALUE))
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(103, 103, 103)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jCheckBox1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(registerBtn)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(loginBtn))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel2)
+                            .addComponent(userNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3)
+                            .addComponent(passwordTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(9, 9, 9)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(displayNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(displayNameLbl))
+                        .addGap(96, 96, 96)
+                        .addComponent(loadingLbl)))
+                .addContainerGap(19, Short.MAX_VALUE))
         );
 
         pack();
@@ -203,47 +216,16 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private JCheckBox jCheckBox1;
-    private JLabel jLabel1;
-    private JLabel jLabel2;
-    private JLabel jLabel3;
-    private JLabel loadingLbl;
-    private JButton loginBtn;
-    private JPasswordField passwordTextField;
-    private JButton registerBtn;
-    private JTextField userNameTextField;
-
-    @Override
-    public void listen(CommandObject commandObject)
-    {
-        if (commandObject.getCommand().equals(Command.S2C_EXIT))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Receive exit signal"));
-            closeHandler();
-        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_NACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login fail"));
-            tcpClient.sendRequestAsync(new CommandObject(Command.C2S_EXIT));
-
-        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_ACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login success"));
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_ACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success"));
-            System.out.println(commandObject.getPayload());
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_NACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success fail" + commandObject.getPayload()));
-        }
-    }
-
-    @Override
-    public void closeHandler()
-    {
-        tcpClient.closeHandler(this);
-    }
-
-
+    private javax.swing.JLabel displayNameLbl;
+    private javax.swing.JTextField displayNameTextField;
+    private javax.swing.JCheckBox jCheckBox1;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel loadingLbl;
+    private javax.swing.JButton loginBtn;
+    private javax.swing.JPasswordField passwordTextField;
+    private javax.swing.JButton registerBtn;
+    private javax.swing.JTextField userNameTextField;
     // End of variables declaration//GEN-END:variables
 }

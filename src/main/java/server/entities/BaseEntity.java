@@ -14,10 +14,10 @@ import java.util.Date;
 public abstract class BaseEntity implements Serializable
 {
 
-    @Column(name = "CREATED_AT", nullable = false)
-    private Date createdAt;
+    @Column(name = "CREATED_AT")
+    private Date createdAt ;
 
-    @Column(name = "UPDATED_AT", nullable = false)
+    @Column(name = "UPDATED_AT")
     private Date updatedAt;
 
     @PrePersist

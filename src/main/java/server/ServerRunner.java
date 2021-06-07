@@ -10,8 +10,6 @@ public class ServerRunner
     public static void main(String[] args) throws InterruptedException
     {
 
-
-
         try (TCPServer tcpServer = new TCPServer())
         {
             Class.forName(SApplicationContext.class.getName());
