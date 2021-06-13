@@ -10,7 +10,8 @@ import java.io.Serializable;
 @Data
 @Entity
 @Table(name = "PRIVATE_MESSAGE")
-public class PrivateMessage extends BaseEntity implements Serializable, Message {
+public class PrivateMessage extends BaseEntity implements Serializable, Message
+{
 
     @Id
     @EqualsAndHashCode.Include
@@ -28,7 +29,10 @@ public class PrivateMessage extends BaseEntity implements Serializable, Message 
     @ManyToOne
     private User receiver;
 
-    @Column(name = "IS_SEEN_BY_RECEIVER")
-    private Boolean isSeenByReceiver =  false;
+    @OneToOne
+    @JoinColumn(name = "NEXT_ID")
+    private PrivateMessage nextMessage;
 
+    @Column(name = "IS_SEEN_BY_RECEIVER")
+    private Boolean isSeenByReceiver = false;
 }

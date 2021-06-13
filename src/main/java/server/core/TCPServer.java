@@ -3,12 +3,9 @@ package server.core;
 import server.context.SApplicationContext;
 import common.dto.Command;
 import common.dto.CommandObject;
-import server.handler.AuthRequestHandler;
-import server.handler.PingRequestHandler;
-import server.handler.RequestHandler;
+import server.handler.*;
 import server.service.PrivateMessageService;
 import utils.SocketExtension;
-import lombok.SneakyThrows;
 import lombok.val;
 
 import java.io.*;
@@ -26,14 +23,19 @@ public class TCPServer implements Closeable
 {
     private ServerSocket socket;
     private PrivateMessageService privateMessageService = SApplicationContext.privateMessageService;
-    private final Map<Socket, ObjectInputStream> objectInputStreamMap;
-    private final Map<Socket, ObjectOutputStream> objectOutputStreamMap;
+    public static final Map<Socket, ObjectInputStream> objectInputStreamMap;
+    public static final Map<Socket, ObjectOutputStream> objectOutputStreamMap;
+
+    static
+    {
+        objectInputStreamMap = new HashMap<>();
+        objectOutputStreamMap = new HashMap<>();
+    }
 
     public TCPServer() throws IOException
     {
         this.socket = new ServerSocket(PORT);
-        this.objectInputStreamMap = new HashMap<>();
-        this.objectOutputStreamMap = new HashMap<>();
+
     }
 
 
@@ -78,6 +80,10 @@ public class TCPServer implements Closeable
 
         requestHandlers.add(new AuthRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new PingRequestHandler(inputStream, outputStream, socket));
+        requestHandlers.add(new GetListRequestHandler(inputStream, outputStream, socket));
+        requestHandlers.add(new FriendRequestHandler(inputStream, outputStream, socket));
+
+        requestHandlers.add(new NotificationRequestHandler(inputStream, outputStream, socket));
 
         return requestHandlers;
     }
@@ -96,7 +102,6 @@ public class TCPServer implements Closeable
 
             if (commandObject == null)
             {
-                System.out.println("STOP LISTENING");
 
                 synchronized (this.objectOutputStreamMap)
                 {
@@ -106,7 +111,7 @@ public class TCPServer implements Closeable
                 {
                     this.objectInputStreamMap.remove(socket);
                 }
-
+                SApplicationContext.currentUsers.remove(socket);
                 break;
             }
 
@@ -114,7 +119,7 @@ public class TCPServer implements Closeable
 
             if (commandObject.getCommand().equals(Command.C2S_EXIT))
             {
-                System.out.println("BREAK");
+                SApplicationContext.currentUsers.remove(socket);
                 break;
             }
 
@@ -157,9 +162,9 @@ public class TCPServer implements Closeable
     @Override
     public void close() throws IOException
     {
-        for (val entry : SApplicationContext.currentOnlineUsers.entrySet())
+        for (val entry : SApplicationContext.currentUsers.entrySet())
         {
-            entry.getValue().close();
+            entry.getKey().close();
         }
     }
 

@@ -2,14 +2,16 @@ package server.entities;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Table
-@Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class User extends BaseEntity
 {
@@ -39,21 +41,43 @@ public class User extends BaseEntity
             inverseJoinColumns = @JoinColumn(name = "USER_ID"))
     private List<Group> groups;
 
+    // Notification sent to another people
+    @OneToMany(mappedBy = "fromUser", cascade = {CascadeType.ALL})
+    private List<Notification> sentNotifications;
+
+    // Notification receive from another people
+    @OneToMany(mappedBy = "receiveUser", cascade = {CascadeType.ALL})
+    private List<Notification> receiveNotifications;
 
 
-    @OneToMany(mappedBy = "owner")
-    private List<FriendShip> friendships;
-
-    public List<FriendShip> getFriendships()
-    {
-        if (friendships == null)
-            this.friendships = new ArrayList<>();
-        return friendships;
-    }
+    @OneToMany(mappedBy = "owner", cascade = {CascadeType.ALL})
+    private Set<FriendShip> friendships;
 
     public List<Group> getGroups()
     {
-        if(groups == null)  this.groups = new ArrayList<>();
+        if (groups == null) this.groups = new ArrayList<>();
         return groups;
+    }
+
+    public void addFriendship(Collection<FriendShip> friendships)
+    {
+        this.friendships.addAll(friendships);
+        friendships.forEach(f -> {
+            f.setOwner(this);
+        });
+    }
+
+    public void sendAnNotification(Notification notification)
+    {
+        notification.setFromUser(this);
+        notification.setIsSeen(false);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "User{" +
+                "id=" + id +
+                '}';
     }
 }

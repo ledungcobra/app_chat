@@ -1,7 +1,13 @@
 package common.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.Serializable;
 import java.util.concurrent.Future;
+
+@Getter
+@Setter
 
 public class CommandObject implements Serializable
 {
@@ -9,7 +15,6 @@ public class CommandObject implements Serializable
 
     public Command command;
     public Object payload;
-    public Future<?> result;
 
     public CommandObject(Command command, Object payload)
     {
@@ -46,15 +51,6 @@ public class CommandObject implements Serializable
         this.payload = payload;
     }
 
-    public Future<?> getResult()
-    {
-        return result;
-    }
-
-    public void setResult(Future<?> result)
-    {
-        this.result = result;
-    }
 
     @Override
     public String toString()
@@ -62,7 +58,6 @@ public class CommandObject implements Serializable
         return "CommandObject{" +
                 "command=" + command +
                 ", payload=" + payload +
-                ", result=" + result +
                 '}';
     }
 }

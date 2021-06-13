@@ -1,5 +1,6 @@
 package utils;
 
+import client.context.CApplicationContext;
 import server.context.SApplicationContext;
 
 import java.io.*;
@@ -83,4 +84,31 @@ public class FileHelper
 
         return completableFuture;
     }
+
+    public static CompletableFuture<Boolean> deleteFileAsync(String fileName)
+    {
+
+        CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
+
+        CApplicationContext.service.submit(() -> {
+            File file = new File(fileName);
+            try
+            {
+                if (file.exists())
+                {
+                    completableFuture.complete(file.delete());
+                } else
+                {
+                    completableFuture.complete(true);
+                }
+            } catch (Exception e)
+            {
+                completableFuture.complete(false);
+            }
+
+        });
+        return completableFuture;
+
+    }
+
 }

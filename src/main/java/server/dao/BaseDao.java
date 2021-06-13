@@ -3,9 +3,11 @@ package server.dao;
 
 import server.entities.BaseEntity;
 import org.hibernate.Session;
+import server.entities.User;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class BaseDao<T extends BaseEntity, ID extends Serializable>
@@ -50,4 +52,23 @@ public abstract class BaseDao<T extends BaseEntity, ID extends Serializable>
         return this.session.createQuery("FROM " + clazz.getSimpleName()).getResultList();
     }
 
+    public void update(T object)
+    {
+        this.session.update(object);
+    }
+
+    public List<User> getFriends(Long id)
+    {
+        try
+        {
+            List<User> friends = session
+                    .createQuery("SELECT DISTINCT f.partner FROM FriendShip f WHERE f.owner.id=:id", User.class)
+                    .setParameter("id", id).getResultList();
+
+            return friends;
+        } catch (Exception e)
+        {
+            return new ArrayList<>();
+        }
+    }
 }

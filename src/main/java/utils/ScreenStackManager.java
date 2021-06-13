@@ -31,17 +31,22 @@ public class ScreenStackManager
         screensStack = new Stack<>();
     }
 
-    public void pushScreen(@NonNull AbstractScreen screen)
+    public void pushScreen(@NonNull AbstractScreen screen, boolean hideParent)
     {
         synchronized (screensStack)
         {
-            if (!screensStack.isEmpty())
+            if (!screensStack.isEmpty() && hideParent)
             {
                 hideScreen(screensStack.peek());
             }
             screensStack.push(screen);
             showScreen(screen);
         }
+    }
+
+    public void pushScreen(@NonNull AbstractScreen screen)
+    {
+        pushScreen(screen, true);
     }
 
     private void showScreen(@NonNull AbstractScreen screen)

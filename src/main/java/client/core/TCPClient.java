@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -26,7 +25,7 @@ public class TCPClient implements Closeable
 {
 
     private Socket socket;
-    private CopyOnWriteArrayList<ResponseHandler> handlers;
+    private final CopyOnWriteArrayList<ResponseHandler> handlers;
     private AtomicBoolean isListening = new AtomicBoolean(false);
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
@@ -94,24 +93,32 @@ public class TCPClient implements Closeable
 
 
     // Run And wait
-    @SneakyThrows
     public void listeningOnEventAsync()
     {
+
         System.out.println("CLIENT LISTENING");
         this.isListening.set(true);
         CApplicationContext.service.submit(() -> {
             while (isListening.get())
             {
-                for (int i = 0; i < this.handlers.size(); i++)
-                {
-                    CommandObject commandObject = readObjectFromInputStream();
-                    if (commandObject == null) continue;
-                    System.out.println("RECEIVED " + commandObject);
-                    handlers.get(i).listen(commandObject);
+                CommandObject commandObject = readObjectFromInputStream();
 
+                synchronized (this.handlers)
+                {
+                    for (int i = 0; i < this.handlers.size(); i++)
+                    {
+                        System.out.println("Number of listener is " + handlers.size());
+                        if (commandObject == null) continue;
+                        System.out.println("RECEIVED " + commandObject);
+                        System.out.println("Passs to " + handlers.get(i).getClass().getSimpleName());
+                        handlers.get(i).listenOnNetworkEvent(commandObject);
+                    }
                 }
+
+
             }
         });
+
     }
 
     public CommandObject readObjectFromInputStream()
@@ -150,12 +157,18 @@ public class TCPClient implements Closeable
 
     public void closeHandler(ResponseHandler handler)
     {
-        this.handlers.remove(handler);
+        synchronized (this.handlers)
+        {
+            this.handlers.remove(handler);
+        }
     }
 
-    public void addListener(ResponseHandler handler)
+    public void registerListener(ResponseHandler handler)
     {
-        this.handlers.add(handler);
+        synchronized (this.handlers)
+        {
+            this.handlers.add(handler);
+        }
     }
 
     public void reconnect() throws IOException

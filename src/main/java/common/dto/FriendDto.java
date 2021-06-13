@@ -9,8 +9,13 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class FriendDto implements Serializable
 {
-        @EqualsAndHashCode.Include
-        private Long id;
+    @EqualsAndHashCode.Include
+    private Long id;
 
-        private String displayName;
+    private String displayName;
+
+    public String toString()
+    {
+        return this.displayName;
+    }
 }

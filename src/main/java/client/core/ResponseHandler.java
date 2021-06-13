@@ -4,6 +4,6 @@ import common.dto.CommandObject;
 
 public interface ResponseHandler
 {
-    void listen(CommandObject commandObject);
+    void listenOnNetworkEvent(CommandObject commandObject);
     void closeHandler();
 }

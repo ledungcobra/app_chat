@@ -9,11 +9,11 @@ import client.context.CApplicationContext;
 import client.core.ResponseHandler;
 import common.dto.Command;
 import common.dto.CommandObject;
+import common.dto.UserAuthDto;
 import common.dto.UserDto;
 import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import lombok.val;
-import server.entities.User;
 import utils.Navigator;
 
 import javax.swing.*;
@@ -30,14 +30,12 @@ import static utils.FileHelper.writeObjectToFileAsync;
 /**
  * @author ledun
  */
-@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-public class LoginScreen extends AbstractScreen implements ResponseHandler
+public class LoginScreen extends AbstractScreen implements ResponseHandler, AbstractScreen.NetworkListener
 {
 
     public static final String AUTH_TXT = "AUTH.txt";
     public static final String USER = "USER";
-    @EqualsAndHashCode.Include
-    private int id = 0;
+    public static final String REMEMBER_ME = "REMEMBER_ME";
 
 
     public LoginScreen() throws HeadlessException
@@ -70,8 +68,6 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
     public void addEventListener()
     {
 
-        tcpClient.addListener(this);
-
         this.loginBtn.addActionListener(this::loginBtnActionPerformed);
         this.registerBtn.addActionListener(this::registerActionPerformed);
         this.isRegisterCheck.addActionListener(e -> {
@@ -101,7 +97,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
     public void registerAsync()
     {
 
-        User user = new User();
+        UserAuthDto user = new UserAuthDto();
         user.setUserName(userNameTextField.getText());
         user.setPassword(new String(passwordTextField.getPassword()));
         user.setDisplayName(displayNameTextField.getText());
@@ -158,7 +154,8 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
     public void loginAsync()
     {
 
-        User user = new User();
+        UserAuthDto user = new UserAuthDto();
+
         user.setUserName(userNameTextField.getText());
         user.setPassword(new String(passwordTextField.getPassword()));
 
@@ -204,7 +201,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
 
 
     @Override
-    public void listen(CommandObject commandObject)
+    public void listenOnNetworkEvent(CommandObject commandObject)
     {
         if (commandObject.getCommand().equals(Command.S2C_EXIT))
         {
@@ -217,6 +214,8 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
 
         } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_ACK))
         {
+            this.data = new HashMap<>();
+
             if (rememberMeCheck.isSelected())
             {
                 try
@@ -229,13 +228,13 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
                     });
                     e.printStackTrace();
                 }
+                data.put(REMEMBER_ME, true);
             }
+
             runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login success"));
-            Map<String, Object> data = new HashMap<>();
             data.put(USER, commandObject.getPayload());
 
-            new Navigator<ChatScreen>().navigate(data);
-            closeHandler();
+            new Navigator<ChatScreen>().navigate(data, true);
 
         } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_ACK))
         {
@@ -247,6 +246,12 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
         }
     }
 
+
+    @Override
+    public void registerNetworkListener()
+    {
+        tcpClient.registerListener(this);
+    }
 
     @Override
     public void closeHandler()
@@ -377,5 +382,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler
     private javax.swing.JButton registerBtn;
     private javax.swing.JCheckBox rememberMeCheck;
     private javax.swing.JTextField userNameTextField;
+
+
     // End of variables declaration//GEN-END:variables
 }

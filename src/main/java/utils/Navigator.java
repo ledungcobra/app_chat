@@ -13,7 +13,7 @@ public class Navigator<T extends AbstractScreen>
     private T parentScreen;
 
 
-    @SneakyThrows
+    @SneakyThrows()
     public Navigator(T... t)
     {
         clazz = (Class<T>) t.getClass().getComponentType();
@@ -30,14 +30,20 @@ public class Navigator<T extends AbstractScreen>
         ScreenStackManager.getInstance().pushScreen(screen);
     }
 
-    public void navigate(Map<String, Object> data)
+    public void navigate(Map<String, Object> data, boolean hideParent)
     {
         screen.setData(data);
         screen.onCreateView();
         screen.addEventListener();
 
-        ScreenStackManager.getInstance().pushScreen(screen);
+        ScreenStackManager.getInstance().pushScreen(screen, hideParent);
     }
+
+    public void navigate(Map<String, Object> data)
+    {
+        navigate(data, true);
+    }
+
 
     public void navigate()
     {

@@ -7,13 +7,14 @@ import javax.persistence.*;
 
 @Entity
 @Table(uniqueConstraints = {
-        @UniqueConstraint(name = "FRIENDSHIP_UK", columnNames = {"USER_ID", "PARTNER_ID"})
+        @UniqueConstraint(columnNames = {"USER_ID", "PARTNER_ID"})
 })
 @Data
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 public class FriendShip extends BaseEntity
 {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne

@@ -15,9 +15,11 @@ public class HibernateUtils
     private static Session session;
 
 
-    public static void buildSessionFactory()
+    public static SessionFactory buildSessionFactory()
     {
         sessionFactory = new Configuration().configure("hibernate.cfg.xml").buildSessionFactory();
+        return sessionFactory;
+
     }
 
     public static void sql(String sql)

@@ -9,7 +9,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @Data
 @Entity
-@Table(name = "PRIVATE_MESSAGE")
+@Table(name = "GROUP_MESSAGE")
 public class GroupMessage extends BaseEntity implements Serializable, Message {
 
     @Id

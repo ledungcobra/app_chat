@@ -1,7 +1,6 @@
 package server.context;
 
-import server.dao.BaseDao;
-import server.dao.UserDao;
+import server.dao.*;
 import server.entities.User;
 import server.service.PrivateMessageService;
 import server.service.UserService;
@@ -21,7 +20,10 @@ public class SApplicationContext
     public static final BaseDao userDao;
     public static final Session session;
     public static final PrivateMessageService privateMessageService;
-    public static final  ConcurrentMap<User, Socket> currentOnlineUsers;
+    public static final ConcurrentMap<Socket, User> currentUsers;
+    public static final FriendOfferDao friendOfferDao;
+    public static final FriendshipDao friendshipDao;
+    public static final NotificationDao notificationDao;
 
 
     static
@@ -31,10 +33,13 @@ public class SApplicationContext
         service = Executors.newFixedThreadPool(13);
 
         userDao = new UserDao(session);
+        friendOfferDao = new FriendOfferDao(session);
+        friendshipDao = new FriendshipDao(session);
+        notificationDao = new NotificationDao(session);
 
         userService = new UserService();
         privateMessageService = new PrivateMessageService();
-        currentOnlineUsers = new ConcurrentHashMap<>();
+        currentUsers = new ConcurrentHashMap<>();
 
     }
 

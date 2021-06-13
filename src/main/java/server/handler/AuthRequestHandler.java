@@ -1,9 +1,6 @@
 package server.handler;
 
-import common.dto.Command;
-import common.dto.CommandObject;
-import common.dto.ObjectMapper;
-import common.dto.UserDto;
+import common.dto.*;
 import lombok.SneakyThrows;
 import org.mindrot.jbcrypt.BCrypt;
 import server.context.SApplicationContext;
@@ -16,7 +13,7 @@ import java.net.Socket;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import static server.context.SApplicationContext.currentOnlineUsers;
+import static server.context.SApplicationContext.currentUsers;
 import static utils.Constants.USER_NOT_FOUND;
 import static utils.Constants.USRNAME_PWD_FAIL;
 
@@ -33,10 +30,10 @@ public class AuthRequestHandler extends RequestHandler
     @SneakyThrows
     private void login(CommandObject commandObject)
     {
-        User user = (User) commandObject.getPayload();
+        UserAuthDto userAuthDto = (UserAuthDto) commandObject.getPayload();
         CommandObject response = new CommandObject();
 
-        if (user == null)
+        if (userAuthDto == null)
         {
             sendResponse(new CommandObject(Command.S2C_LOGIN_NACK, USER_NOT_FOUND));
             sendResponse(new CommandObject(Command.S2C_EXIT));
@@ -44,7 +41,7 @@ public class AuthRequestHandler extends RequestHandler
         }
 
         // Wait for database
-        User userInDb = userService.findByUserName(user.getUserName()).get();
+        User userInDb = userService.findByUserNameAsync(userAuthDto.getUserName()).get();
 
         if (userInDb == null)
         {
@@ -56,15 +53,16 @@ public class AuthRequestHandler extends RequestHandler
 
         } else
         {
-            if (userInDb.getUserName().equals(user.getUserName()) &&
-                    BCrypt.checkpw(user.getPassword(), userInDb.getPassword())
+            if (userInDb.getUserName().equals(userAuthDto.getUserName()) &&
+                    BCrypt.checkpw(userAuthDto.getPassword(), userInDb.getPassword())
             )
             {
                 // Success login
                 response.setCommand(Command.S2C_LOGIN_ACK);
-                
-                response.setPayload(ObjectMapper.<User, UserDto>map(userInDb));
-                currentOnlineUsers.put(user, socket);
+                UserDto userDto = ObjectMapper.<User, UserDto>map(userInDb);
+
+                response.setPayload(userDto);
+                currentUsers.put(socket, userInDb);
 
             } else
             {
@@ -78,26 +76,26 @@ public class AuthRequestHandler extends RequestHandler
     @SneakyThrows
     private void register(CommandObject commandObject)
     {
-        User user = (User) commandObject.getPayload();
+        UserAuthDto userAuthDto = (UserAuthDto) commandObject.getPayload();
         CommandObject response = new CommandObject();
 
-        if (user == null)
+        if (userAuthDto == null)
         {
             response.setCommand(Command.S2C_LOGIN_NACK);
             response.setPayload(USER_NOT_FOUND);
             sendResponseAsync(response);
         }
 
-        User userInDb = userService.findByUserName(user.getUserName()).get();
+        User userInDb = userService.findByUserNameAsync(userAuthDto.getUserName()).get();
 
         if (userInDb == null)
         {
-            user.setPassword(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt(4)));
+            userAuthDto.setPassword(BCrypt.hashpw(userAuthDto.getPassword(), BCrypt.gensalt(4)));
             response.setCommand(Command.S2C_REGISTER_ACK);
+            User user = ObjectMapper.map(userAuthDto);
             userService.insert(user).get();
 
             response.setPayload(ObjectMapper.<User, UserDto>map(user));
-
             sendResponseAsync(response);
 
         } else

@@ -25,12 +25,12 @@
 
         <mapping class="server.entities.User"/>
         <mapping class="server.entities.VideoCall"/>
-
         <mapping class="server.entities.Group"/>
         <mapping class="server.entities.GroupFile"/>
         <mapping class="server.entities.GroupMessage"/>
         <mapping class="server.entities.FriendShip"/>
-
+        <mapping class="server.entities.Notification"/>
+        <mapping class="server.entities.FriendOffer"/>
         <mapping class="server.entities.PrivateFile"/>
         <mapping class="server.entities.PrivateMessage"/>
     </session-factory>
