@@ -9,26 +9,27 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public abstract class BaseService<T extends BaseEntity, ID extends Serializable>
-{
+public abstract class BaseService<T extends BaseEntity, ID extends Serializable> {
     protected BaseDao<T, ID> dao;
     protected final ExecutorService service = Executors.newSingleThreadExecutor();
 
-    public BaseService()
-    {
+    public BaseService() {
     }
 
-    public Future<T> findById(ID id){
-        return service.submit(()-> dao.find(id));
+    public Future<T> findById(ID id) {
+        return service.submit(() -> HibernateUtils.doTransaction2(()->dao.find(id)));
     }
 
-    public Future<T> insert(T obj)
-    {
+    public Future<T> insert(T obj) {
         return service.submit(() -> {
-            HibernateUtils.doTransaction(() -> {
-                dao.insert(obj);
-            });
-            return obj;
+            try {
+                HibernateUtils.doTransaction(() -> {
+                    dao.insert(obj);
+                });
+                return obj;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         });
     }
 

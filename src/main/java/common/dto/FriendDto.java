@@ -1,14 +1,24 @@
 package common.dto;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
 import java.io.Serializable;
 
-@Data
-@EqualsAndHashCode
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class FriendDto implements Serializable
 {
+
+    public FriendDto() {
+    }
+
+    @Builder
+    public FriendDto(Long id, String displayName) {
+        this.id = id;
+        this.displayName = displayName;
+    }
+
     @EqualsAndHashCode.Include
     private Long id;
 

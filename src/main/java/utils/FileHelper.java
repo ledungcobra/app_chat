@@ -56,7 +56,7 @@ public class FileHelper
     public static CompletableFuture<Object> readObjectToFile(String fileName)
     {
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-        SApplicationContext.service.submit(() -> {
+        CApplicationContext.service.submit(() -> {
             File file = new File(fileName);
             if (file.exists())
             {

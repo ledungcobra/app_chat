@@ -11,10 +11,10 @@ import common.dto.Command;
 import common.dto.CommandObject;
 import common.dto.UserAuthDto;
 import common.dto.UserDto;
-import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import lombok.val;
 import utils.Navigator;
+import utils.PropertiesFileUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,40 +22,47 @@ import java.awt.event.ActionEvent;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-import static client.context.CApplicationContext.tcpClient;
+import static client.context.CApplicationContext.*;
+import static utils.Constants.CLIENT_PROPERTIES_FILE;
+import static utils.Constants.SERVER_DEFAULT;
 import static utils.FileHelper.readObjectToFile;
 import static utils.FileHelper.writeObjectToFileAsync;
 
 /**
  * @author ledun
  */
-public class LoginScreen extends AbstractScreen implements ResponseHandler, AbstractScreen.NetworkListener
-{
+public class LoginScreen extends AbstractScreen implements ResponseHandler, AbstractScreen.NetworkListener {
 
     public static final String AUTH_TXT = "AUTH.txt";
     public static final String USER = "USER";
     public static final String REMEMBER_ME = "REMEMBER_ME";
 
+    private GroupLayout layout;
 
-    public LoginScreen() throws HeadlessException
-    {
+    public LoginScreen() throws HeadlessException {
     }
 
     @Override
-    public void onCreateView()
-    {
+    public void onCreateView() {
         initComponents();
         ImageIcon icon = new ImageIcon("loading.gif");
         this.loadingLbl.setIcon(icon);
+
 //        this.loadingLbl.setText("loading ....");
         this.loadingLbl.setVisible(false);
         this.displayNameLbl.setVisible(false);
         this.displayNameTextField.setVisible(false);
 
+        this.userNameTextField.setText("dun");
+        this.passwordTextField.setText("dun");
+
+
+        connectToDefaultServer(CLIENT_PROPERTIES_FILE);
+
         readObjectToFile(AUTH_TXT).thenAccept((r) -> {
-            if (r instanceof UserDto)
-            {
+            if (r instanceof UserDto) {
                 Map<String, Object> data = new HashMap<>();
                 data.put(USER, r);
                 new Navigator<ChatScreen>().navigate(data);
@@ -64,86 +71,102 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
     }
 
+    private void connectToDefaultServer(String fileName) {
+        service.submit(() -> {
+            Properties properties = PropertiesFileUtils.readPropertiesFile(fileName);
+            String[] tokens = properties.getProperty(SERVER_DEFAULT).split(":");
+
+            String host = tokens[0];
+            int port = Integer.parseInt(tokens[1]);
+            init(host, port);
+            tcpClient.connectAsync().thenApply(s -> {
+                System.out.println("Connected");
+                tcpClient.listeningOnEventAsync();
+                return s;
+            }).handle((s, e) -> {
+                e.printStackTrace();
+                runOnUiThread(() -> JOptionPane.showMessageDialog(this, "An error occur"));
+                return s;
+            });
+        });
+    }
+
+
     @Override
-    public void addEventListener()
-    {
+    public void addEventListener() {
 
         this.loginBtn.addActionListener(this::loginBtnActionPerformed);
         this.registerBtn.addActionListener(this::registerActionPerformed);
         this.isRegisterCheck.addActionListener(e -> {
-            if (this.isRegisterCheck.isSelected())
-            {
+            if (this.isRegisterCheck.isSelected()) {
                 this.displayNameLbl.setVisible(true);
                 this.displayNameTextField.setVisible(true);
-            } else
-            {
+            } else {
                 this.displayNameLbl.setVisible(false);
                 this.displayNameTextField.setVisible(false);
             }
         });
+        configServer.addActionListener((e) -> {
+            Map<String, Object> data = new HashMap<>();
+            data.put(LoginScreen.class.getSimpleName(), this);
+            new Navigator<ConfigServerScreen>().navigate(data);
+        });
+
     }
 
-    private void registerActionPerformed(ActionEvent actionEvent)
-    {
+    public void onConfigDone() {
+        connectToDefaultServer(CLIENT_PROPERTIES_FILE);
+    }
+
+    private void registerActionPerformed(ActionEvent actionEvent) {
         registerAsync();
     }
 
-    @SneakyThrows
-    private void loginBtnActionPerformed(ActionEvent e)
-    {
+    private void loginBtnActionPerformed(ActionEvent e) {
         loginAsync();
     }
 
-    public void registerAsync()
-    {
+    public void registerAsync() {
 
         UserAuthDto user = new UserAuthDto();
         user.setUserName(userNameTextField.getText());
         user.setPassword(new String(passwordTextField.getPassword()));
         user.setDisplayName(displayNameTextField.getText());
 
-        if (user.getUserName() == null || user.getUserName().isEmpty())
-        {
+        if (user.getUserName() == null || user.getUserName().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Username cannot be blank");
             return;
         }
 
-        if (user.getPassword() == null || user.getPassword().isEmpty())
-        {
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Password cannot be blank");
             return;
         }
 
-        if (user.getDisplayName() == null || user.getDisplayName().isEmpty())
-        {
+        if (user.getDisplayName() == null || user.getDisplayName().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Display name cannot be blank");
             return;
         }
 
 
-        CApplicationContext.service.submit(() -> {
+        service.submit(() -> {
 
-            try
-            {
-                if (!tcpClient.stillAlive())
-                {
+            try {
+                if (!tcpClient.stillAlive()) {
                     System.out.println("Reconnect sync");
                     tcpClient.connect();
                     System.out.println("Reconnect success");
                 }
 
-                try
-                {
+                try {
                     tcpClient.sendRequestAsync(new CommandObject(Command.C2S_REGISTER, user));
-                } catch (Exception e)
-                {
+                } catch (Exception e) {
                     runOnUiThread(() -> {
                         JOptionPane.showMessageDialog(LoginScreen.this, e.getMessage());
                     });
                     e.printStackTrace();
                 }
-            } catch (IOException e)
-            {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -151,32 +174,27 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
     }
 
-    public void loginAsync()
-    {
+    public void loginAsync() {
 
         UserAuthDto user = new UserAuthDto();
 
         user.setUserName(userNameTextField.getText());
         user.setPassword(new String(passwordTextField.getPassword()));
 
-        if (user.getUserName() == null || user.getUserName().isEmpty())
-        {
+        if (user.getUserName() == null || user.getUserName().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Username cannot be blank");
             return;
         }
 
-        if (user.getPassword() == null || user.getPassword().isEmpty())
-        {
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Password cannot be blank");
             return;
         }
 
-        CApplicationContext.service.submit(() -> {
-            try
-            {
+        service.submit(() -> {
+            try {
 
-                if (!tcpClient.stillAlive())
-                {
+                if (!tcpClient.stillAlive()) {
                     System.out.println("Reconnect sync");
                     tcpClient.reconnect();
                     System.out.println("Reconnect success");
@@ -184,12 +202,10 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
 
                 val success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
-                if (!success)
-                {
+                if (!success) {
                     throw new Exception("Login fail because the server is offline");
                 }
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
                 runOnUiThread(() -> {
                     JOptionPane.showMessageDialog(LoginScreen.this, e.getMessage());
                 });
@@ -201,28 +217,24 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
 
     @Override
-    public void listenOnNetworkEvent(CommandObject commandObject)
-    {
-        if (commandObject.getCommand().equals(Command.S2C_EXIT))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Receive exit signal"));
-            closeHandler();
-        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_NACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login fail"));
-            tcpClient.sendRequestAsync(new CommandObject(Command.C2S_EXIT));
+    public void listenOnNetworkEvent(CommandObject commandObject) {
+//        if (commandObject.getCommand().equals(Command.S2C_EXIT))
+//        {
+//            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Receive exit signal"));
+//            closeHandler();
+//        } else
 
-        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_ACK))
-        {
+        if (commandObject.getCommand().equals(Command.S2C_LOGIN_NACK)) {
+            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login fail"));
+//            tcpClient.sendRequestAsync(new CommandObject(Command.C2S_EXIT));
+
+        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_ACK)) {
             this.data = new HashMap<>();
 
-            if (rememberMeCheck.isSelected())
-            {
-                try
-                {
+            if (rememberMeCheck.isSelected()) {
+                try {
                     writeObjectToFileAsync(AUTH_TXT, commandObject.getPayload());
-                } catch (IOException e)
-                {
+                } catch (IOException e) {
                     runOnUiThread(() -> {
                         JOptionPane.showMessageDialog(this, e.getMessage());
                     });
@@ -231,31 +243,24 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
                 data.put(REMEMBER_ME, true);
             }
 
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login success"));
             data.put(USER, commandObject.getPayload());
-
             new Navigator<ChatScreen>().navigate(data, true);
 
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_ACK))
-        {
+        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_ACK)) {
             runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success"));
-            System.out.println(commandObject.getPayload());
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_NACK))
-        {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success fail" + commandObject.getPayload()));
+        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_NACK)) {
+            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register fail" + commandObject.getPayload()));
         }
     }
 
 
     @Override
-    public void registerNetworkListener()
-    {
+    public void registerNetworkListener() {
         tcpClient.registerListener(this);
     }
 
     @Override
-    public void closeHandler()
-    {
+    public void closeHandler() {
         tcpClient.closeHandler(this);
     }
 
@@ -267,8 +272,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents()
-    {
+    private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -282,6 +286,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
         displayNameTextField = new javax.swing.JTextField();
         displayNameLbl = new javax.swing.JLabel();
         isRegisterCheck = new javax.swing.JCheckBox();
+        configServer = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -302,6 +307,8 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
         isRegisterCheck.setText("Register form");
 
+        configServer.setText("Config server");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -312,45 +319,45 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
                                         .addComponent(jLabel2)
                                         .addComponent(jLabel3)
                                         .addComponent(displayNameLbl))
-                                .addGap(27, 27, 27)
+                                .addGap(18, 18, 18)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                         .addGroup(layout.createSequentialGroup()
-                                                .addComponent(isRegisterCheck)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(isRegisterCheck)
+                                                        .addComponent(configServer))
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 389, Short.MAX_VALUE)
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                                         .addComponent(loginBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                         .addComponent(registerBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                         .addComponent(rememberMeCheck, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                         .addGroup(layout.createSequentialGroup()
-                                                .addGap(0, 485, Short.MAX_VALUE)
+                                                .addGap(0, 0, Short.MAX_VALUE)
                                                 .addComponent(loadingLbl)
                                                 .addGap(198, 198, 198))
                                         .addComponent(passwordTextField)
                                         .addComponent(userNameTextField)
+                                        .addComponent(displayNameTextField)
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(jLabel1)
-                                                .addGap(0, 0, Short.MAX_VALUE))
-                                        .addComponent(displayNameTextField))
+                                                .addGap(0, 0, Short.MAX_VALUE)))
                                 .addContainerGap())
         );
         layout.setVerticalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
-                                .addGap(103, 103, 103)
+                                .addGap(34, 34, 34)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(rememberMeCheck)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(registerBtn)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(loginBtn))
+                                                .addComponent(registerBtn))
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(jLabel1)
                                                 .addGap(18, 18, 18)
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel2)
                                                         .addComponent(userNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                .addGap(18, 18, 18)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(jLabel3)
                                                         .addComponent(passwordTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -358,10 +365,14 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
                                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                                         .addComponent(displayNameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                         .addComponent(displayNameLbl))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                .addComponent(isRegisterCheck)
-                                                .addGap(64, 64, 64)
-                                                .addComponent(loadingLbl)))
+                                                .addGap(45, 45, 45)
+                                                .addComponent(isRegisterCheck)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(loginBtn)
+                                                .addComponent(configServer))
+                                        .addComponent(loadingLbl, javax.swing.GroupLayout.Alignment.TRAILING))
                                 .addContainerGap(19, Short.MAX_VALUE))
         );
 
@@ -370,6 +381,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton configServer;
     private javax.swing.JLabel displayNameLbl;
     private javax.swing.JTextField displayNameTextField;
     private javax.swing.JCheckBox isRegisterCheck;
@@ -382,7 +394,5 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
     private javax.swing.JButton registerBtn;
     private javax.swing.JCheckBox rememberMeCheck;
     private javax.swing.JTextField userNameTextField;
-
-
     // End of variables declaration//GEN-END:variables
 }

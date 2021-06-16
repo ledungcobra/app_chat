@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
+import static server.context.SApplicationContext.currentUsers;
+
 public abstract class RequestHandler
 {
     private ObjectInputStream objectInputStream;
@@ -26,10 +28,8 @@ public abstract class RequestHandler
 
     protected Future<Boolean> sendResponseAsync(CommandObject object)
     {
-
-        return SApplicationContext.service.submit(() -> {
-            return sendResponse(object);
-        });
+        System.out.println("Send "+ object + " to " + currentUsers.get(socket).getDisplayName());
+        return SApplicationContext.service.submit(() -> sendResponse(object));
     }
 
     public boolean sendResponse(CommandObject object)

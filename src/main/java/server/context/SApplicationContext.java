@@ -1,47 +1,102 @@
 package server.context;
 
+import org.hibernate.SessionFactory;
+import server.core.TCPServer;
 import server.dao.*;
 import server.entities.User;
-import server.service.PrivateMessageService;
 import server.service.UserService;
+import server.view.ServerConfigScreen;
 import utils.HibernateUtils;
-import org.hibernate.Session;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SApplicationContext
-{
-    public static final ExecutorService service;
-    public static final UserService userService;
-    public static final BaseDao userDao;
-    public static final Session session;
-    public static final PrivateMessageService privateMessageService;
-    public static final ConcurrentMap<Socket, User> currentUsers;
-    public static final FriendOfferDao friendOfferDao;
-    public static final FriendshipDao friendshipDao;
-    public static final NotificationDao notificationDao;
+public class SApplicationContext {
+    private static String url;
+    private static int threadsInt;
+    public static ExecutorService service;
+    public static UserService userService;
+    public static BaseDao userDao;
+    public static SessionFactory sessionFactory;
+    public static ConcurrentMap<Socket, User> currentUsers;
+    public static FriendOfferDao friendOfferDao;
+    public static FriendshipDao friendshipDao;
+    public static NotificationDao notificationDao;
+    public static MessageDao messageDao;
+    public static AtomicBoolean isRunning = new AtomicBoolean(false);
+    public static Integer port;
+    private static TCPServer tcpServer;
+    public static ServerConfigScreen configScreen;
 
 
-    static
-    {
+    public static void init(int portInt, String url, int threadsInt, String dbUrl, String username, String password) {
 
-        session = HibernateUtils.openSession();
-        service = Executors.newFixedThreadPool(13);
+        port = portInt;
+        SApplicationContext.url = url;
+        SApplicationContext.threadsInt = threadsInt;
 
-        userDao = new UserDao(session);
-        friendOfferDao = new FriendOfferDao(session);
-        friendshipDao = new FriendshipDao(session);
-        notificationDao = new NotificationDao(session);
+        connectDb(dbUrl, username, password);
+        userDao = new UserDao(sessionFactory);
+        friendOfferDao = new FriendOfferDao(sessionFactory);
+        friendshipDao = new FriendshipDao(sessionFactory);
+        notificationDao = new NotificationDao(sessionFactory);
+        messageDao = new MessageDao(sessionFactory);
 
         userService = new UserService();
-        privateMessageService = new PrivateMessageService();
         currentUsers = new ConcurrentHashMap<>();
-
     }
 
+    public static void startServer() {
+        service = Executors.newFixedThreadPool(threadsInt);
+        isRunning.set(true);
+        try {
+            tcpServer = new TCPServer(url, port);
+            service.submit(() -> {
 
+                if (Thread.interrupted()) {
+                    System.out.println("STOP");
+                }
+
+                while (isRunning.get()) {
+                    try {
+                        System.out.println("Listening");
+                        Socket socket = tcpServer.listenConnection();
+                        service.submit(() -> {
+                            tcpServer.process(socket);
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+            }).get();
+            System.out.println("STOP");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void stopServer() {
+
+        try {
+            isRunning.set(false);
+            sessionFactory.close();
+            currentUsers.clear();
+            tcpServer.close();
+            service.shutdownNow();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void connectDb(String dbUrl, String username, String password) {
+        sessionFactory = HibernateUtils.buildSessionFactory(dbUrl, username, password);
+    }
 }

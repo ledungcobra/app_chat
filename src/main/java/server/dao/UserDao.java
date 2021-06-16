@@ -1,42 +1,40 @@
 package server.dao;
 
-import lombok.val;
+import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import server.entities.User;
-import org.hibernate.Session;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class UserDao extends BaseDao<User, Long>
-{
-    public UserDao(Session session)
-    {
-        super(session);
+public class UserDao extends BaseDao<User, Long> {
+
+
+    public UserDao(SessionFactory sessionFactory) {
+        super(sessionFactory);
     }
 
-    public User findByUserName(String userName)
-    {
-        try
-        {
-            User user = (User) session.createQuery("FROM User u WHERE u.userName=:userName")
+    public User findByUserName(String userName) {
+        try {
+            User user = (User) getCurrentSession()
+                    .createQuery("FROM User u WHERE u.userName=:userName")
                     .setParameter("userName", userName).getSingleResult();
             return user;
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             return null;
         }
     }
 
-    public List<User> findByKeyword(String keyword)
-    {
-        try
-        {
-            Query query = session.createQuery("FROM User u where u.displayName like :keyword");
-            query.setParameter("keyword", "%" + keyword + "%");
-            return query.getResultList();
-        } catch (Exception e)
-        {
+    public List<User> findByKeyword(String keyword) {
+        try {
+            getCurrentSession().beginTransaction();
+            Query query = getCurrentSession()
+                    .createQuery("FROM User u where u.displayName like :k");
+            query.setParameter("k", "%" + keyword + "%");
+            List resultList = query.getResultList();
+            getCurrentSession().close();
+            return resultList;
+        } catch (Exception e) {
             return new ArrayList<>();
         }
     }

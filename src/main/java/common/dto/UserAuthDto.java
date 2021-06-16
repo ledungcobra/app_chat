@@ -10,11 +10,16 @@ import java.io.Serializable;
 public class UserAuthDto implements Serializable
 {
 
+
+
     @EqualsAndHashCode.Include
     private Long id;
 
     private String userName;
     private String displayName;
     private String password;
+
+    public UserAuthDto() {
+    }
 
 }

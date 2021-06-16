@@ -49,6 +49,7 @@ public class NotificationRequestHandler extends RequestHandler
         Long userId = (Long) commandObject.getPayload();
         try
         {
+            // TODO:
             User user = userService.findById(userId).get();
             List<NotificationDto> notificationDtoList = userService
                     .getNotifications(userId)

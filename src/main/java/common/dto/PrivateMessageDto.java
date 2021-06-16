@@ -1,9 +1,6 @@
 package common.dto;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -15,6 +12,18 @@ import java.io.Serializable;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PrivateMessageDto implements Serializable
 {
+
+    public PrivateMessageDto() {
+    }
+
+    public PrivateMessageDto(Long id, String content, UserDto sender, FriendDto receiver, Boolean isSeenByReceiver) {
+        this.id = id;
+        this.content = content;
+        this.sender = sender;
+        this.receiver = receiver;
+        this.isSeenByReceiver = isSeenByReceiver;
+    }
+
     @Id
     @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +33,7 @@ public class PrivateMessageDto implements Serializable
 
     private UserDto sender;
 
-    private UserDto receiver;
+    private FriendDto receiver;
 
     private Boolean isSeenByReceiver;
 

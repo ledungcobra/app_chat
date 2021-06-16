@@ -5,41 +5,17 @@ import common.dto.UserDto;
 import server.context.SApplicationContext;
 import server.core.TCPServer;
 import server.entities.User;
+import server.view.ServerConfigScreen;
+import utils.Navigator;
 
+import javax.swing.*;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 
-public class ServerRunner
-{
-    public static void main(String[] args) throws InterruptedException
-    {
+public class ServerRunner {
+    public static void main(String[] args) throws InterruptedException, InvocationTargetException {
 
-
-        try (TCPServer tcpServer = new TCPServer())
-        {
-            Class.forName(SApplicationContext.class.getName());
-            SApplicationContext.service.submit(() -> {
-                while (true)
-                {
-                    try
-                    {
-                        Socket socket = tcpServer.listenConnection();
-                        System.out.println("Connected");
-                        SApplicationContext.service.submit(() -> {
-                            tcpServer.process(socket);
-                        });
-                    } catch (Exception e)
-                    {
-                        e.printStackTrace();
-                    }
-
-                }
-            });
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        Thread.currentThread().join();
+        SwingUtilities.invokeAndWait(() -> new Navigator<ServerConfigScreen>().navigate());
     }
 
 }
