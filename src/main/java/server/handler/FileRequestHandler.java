@@ -43,25 +43,27 @@ public class FileRequestHandler extends RequestHandler {
                 sendResponseAsync(new CommandObject(S2S_SEND_PRIVATE_FILE_NACK, "The file size cannot exceed " + MAX_FILESIZE + " MB"));
                 return;
             }
-            Socket friendSocket = null;
+            Socket foundSocket = null;
             Set<Map.Entry<Socket, User>> entrySet = currentUsers.entrySet();
+
             for (Map.Entry<Socket, User> entry : entrySet) {
                 if (entry.getValue().getId().equals(
                         ((FriendDto) (fileRequestDto.receiver)).getId())
                 ) {
-                    friendSocket = entry.getKey();
+                    foundSocket = entry.getKey();
                     break;
                 }
             }
 
-            if (friendSocket == null) {
+            if (foundSocket == null) {
                 sendResponseAsync(new CommandObject(S2S_SEND_PRIVATE_FILE_NACK, "Your friend is offline"));
                 return;
             }
 
+            Socket friendSocket = foundSocket;
             service.submit(() -> {
                 try {
-                    SocketExtension.sendResponseToSocket(socket, new CommandObject(S2C_RECEIVE_FILE, fileRequestDto));
+                    SocketExtension.sendResponseToSocket(friendSocket, new CommandObject(S2C_RECEIVE_FILE, fileRequestDto));
                     sendResponse(new CommandObject(S2S_SEND_PRIVATE_FILE_ACK, "Send file success"));
                 } catch (Exception e) {
                     sendResponse(new CommandObject(S2C_SEND_PRIVATE_MESSAGE_NACK, e.getMessage()));

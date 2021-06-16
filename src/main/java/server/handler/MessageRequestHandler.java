@@ -73,7 +73,7 @@ public class MessageRequestHandler extends RequestHandler {
             savedMessageDto.setSender(ObjectMapper.map(privateMessage.getSender()));
             savedMessageDto.setId(privateMessage.getId());
             savedMessageDto.setContent(privateMessage.getContent());
-            sendResponseAsync(new CommandObject(S2C_PRIVATE_MESSAGE, savedMessageDto));
+            sendResponseAsync(new CommandObject(S2C_SEND_PRIVATE_MESSAGE_ACK, savedMessageDto));
             notifyToFriend(messageDto.getReceiver().getId(), savedMessageDto);
 
         } catch (Exception e) {
@@ -89,7 +89,7 @@ public class MessageRequestHandler extends RequestHandler {
                 try {
                     final ObjectOutputStream anotherUserStream = objectOutputStreamMap.get(e.getKey());
                     synchronized (anotherUserStream) {
-                        anotherUserStream.writeObject(new CommandObject(S2C_PRIVATE_MESSAGE, messageDto));
+                        anotherUserStream.writeObject(new CommandObject(S2C_RECEIVE_A_PRIVATE_MESSAGE, messageDto));
                         anotherUserStream.flush();
                     }
                 } catch (Exception ex) {

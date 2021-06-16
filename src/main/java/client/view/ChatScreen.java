@@ -11,7 +11,7 @@ import lombok.val;
 import utils.Navigator;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -117,7 +117,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
         });
 
-        this.friendsList.addListSelectionListener(e -> addNewChatFriendChatTab(friendsList.getSelectedValue()));
+        this.friendsList.addListSelectionListener(e -> addNewChatFriendChatTab(e));
     }
 
     private void sendFileActionPerform() {
@@ -197,14 +197,13 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         return "   " + friendDto.getDisplayName() + " - " + friendDto.getId() + "    ";
     }
 
-    /**
-     * @param friendDto
-     */
+    private void addNewChatFriendChatTab(ListSelectionEvent e) {
 
-    private void addNewChatFriendChatTab(FriendDto friendDto) {
-        String name = generateTabName(friendDto);
+        JList friendList = (JList) e.getSource();
+        FriendDto friendDto = (FriendDto) friendList.getSelectedValue();
+        String tabName = generateTabName(friendDto);
         if (friendChatTabMap.containsKey(friendDto)) {
-            int index = chatTabs.indexOfTab(name);
+            int index = chatTabs.indexOfTab(tabName);
 
             if (index != -1) {
                 chatTabs.setSelectedIndex(index);
@@ -219,12 +218,12 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         textArea.setRows(5);
         scrollPane.setViewportView(textArea);
 
-        chatTabs.addTab(name, scrollPane);
-        int index = chatTabs.indexOfTab(name);
+        chatTabs.addTab(tabName, scrollPane);
+        int index = chatTabs.indexOfTab(tabName);
 
         JPanel newPanel = new JPanel(new GridBagLayout());
         newPanel.setOpaque(false);
-        JLabel lblTitle = new JLabel(name);
+        JLabel lblTitle = new JLabel(tabName);
 
         JButton btnClose = new JButton("x");
         btnClose.setBorderPainted(false);
@@ -258,6 +257,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 }
             }
         };
+
         btnClose.addActionListener(actionListener);
         friendChatTabMap.put(friendDto, new ArrayList<>());
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), friendDto.getId(), 0, 100)));
@@ -394,11 +394,24 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 tcpClient.sendRequestAsync(new CommandObject(C2S_GET_FRIEND_LIST, userDto.getId()));
                 break;
             }
-            case S2C_PRIVATE_MESSAGE: {
+            case S2C_SEND_PRIVATE_MESSAGE_ACK: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
                 List<PrivateMessageDto> privateMessages = friendChatTabMap.get(receiveMessage.getReceiver());
                 privateMessages.add(receiveMessage);
-                runOnUiThread(() -> updatePrivateMessageFor(receiveMessage.getReceiver()));
+                runOnUiThread(() ->
+                        updatePrivateMessageFor(receiveMessage.getReceiver())
+                );
+                break;
+            }
+            case S2C_RECEIVE_A_PRIVATE_MESSAGE: {
+                PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
+                FriendDto sender = ObjectMapper.map(receiveMessage.getSender());
+
+                List<PrivateMessageDto> privateMessages = friendChatTabMap.get(sender);
+                privateMessages.add(receiveMessage);
+                runOnUiThread(() ->
+                        updatePrivateMessageFor(sender)
+                );
                 break;
             }
             case S2C_GET_PRIVATE_MESSAGES_ACK: {
@@ -416,9 +429,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
 
             case S2C_RECEIVE_FILE: {
+                System.out.println(userDto.getDisplayName());
                 receiveFileHandle(commandObject);
                 break;
             }
+
             case C2S_SEND_PRIVATE_MESSAGE:
             case S2S_SEND_PRIVATE_FILE_ACK:
             case S2S_SEND_PRIVATE_FILE_NACK:
@@ -446,20 +461,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                             " do you want to save this file", "Notification", YES_NO_OPTION);
             if (result == YES_OPTION) {
                 JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 fileChooser.setMultiSelectionEnabled(false);
-                fileChooser.setFileFilter(new FileFilter() {
-                    @Override
-                    public boolean accept(File f) {
-                        return f.isDirectory();
-                    }
-
-                    @Override
-                    public String getDescription() {
-                        return "Director";
-                    }
-                });
 
                 int saveResult = fileChooser.showSaveDialog(ChatScreen.this);
+
                 if (saveResult == APPROVE_OPTION) {
 
                     saveFileAsync(sendFileRequestDto.getFileContent(), sendFileRequestDto.getFileName(),
@@ -475,6 +481,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                                 });
                             }
                     );
+
                 } else if (saveResult == ERROR_OPTION) {
                     JOptionPane.showMessageDialog(this, "An error occur");
                 }
@@ -486,6 +493,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     private void saveFileAsync(byte[] fileContent, String fileName, File folderFile, Runnable success, Consumer<Exception> error) {
         File newFile = new File(folderFile, fileName);
+        File finalFile = null;
+
         if (newFile.exists()) {
             int result = showConfirmDialog(ChatScreen.this,
                     "This file is exists click yes to overwrite this, no to save with unique name", "Confirm", YES_NO_OPTION);
@@ -495,22 +504,35 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                     int beforeLastStringIdx = split.length - 2;
                     split[beforeLastStringIdx] = split[beforeLastStringIdx] + LocalDate.now().toString();
                 }
-                StringJoiner joiner = new StringJoiner("");
+                StringJoiner joiner = new StringJoiner(".");
                 Arrays.stream(split).forEach(joiner::add);
                 System.out.println("FILE name" + joiner.toString());
                 newFile = new File(folderFile, joiner.toString());
             }
+            finalFile = newFile;
 
-            File finalNewFile = newFile;
-            service.submit(() -> {
-                try (FileOutputStream fileOutputStream = new FileOutputStream(finalNewFile)) {
-                    fileOutputStream.write(fileContent);
-                    success.run();
-                } catch (Exception e) {
-                    error.accept(e);
+
+        } else {
+            try {
+                if (newFile.createNewFile()) {
+                    System.out.println("Create file sucess");
+                    finalFile = newFile;
                 }
-            });
+            } catch (IOException e) {
+                error.accept(e);
+                return;
+            }
         }
+
+        File finalFile1 = finalFile;
+        service.submit(() -> {
+            try (FileOutputStream fileOutputStream = new FileOutputStream(finalFile1)) {
+                fileOutputStream.write(fileContent);
+                success.run();
+            } catch (Exception e) {
+                error.accept(e);
+            }
+        });
     }
 
     private void updatePrivateMessageFor(FriendDto receiver) {
@@ -527,7 +549,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                         String messagesTransformed = String.join("\n", messageDtos.stream().map(m -> {
                             String messageText = "";
                             if (m.getSender().getId().equals(userDto.getId())) {
-                                messageText = "You";
+                                messageText = "you";
                             } else {
                                 messageText = m.getSender().getDisplayName();
                             }

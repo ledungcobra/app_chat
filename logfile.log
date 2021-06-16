@@ -211,3 +211,51 @@
 2021-06-16 14:35:18 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
 2021-06-16 14:35:18 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
 2021-06-16 14:35:18 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 14:36:29 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 14:36:30 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 14:36:31 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 14:36:31 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 14:36:31 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 14:36:31 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 14:36:31 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 14:36:32 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2021-06-16 14:59:39 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 14:59:40 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 14:59:41 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 14:59:41 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 14:59:41 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 14:59:41 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 14:59:41 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 14:59:42 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2021-06-16 15:40:00 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 15:40:01 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 15:40:01 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 15:40:01 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 15:40:01 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 15:40:01 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 15:40:01 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 15:40:02 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2021-06-16 15:55:29 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 15:55:30 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 15:55:30 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 15:55:30 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 15:55:30 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 15:55:30 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 15:55:30 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 15:55:31 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2021-06-16 15:55:50 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 15:55:51 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 15:55:52 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 15:55:52 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 15:55:52 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 15:55:52 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 15:55:52 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 15:55:52 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
+2021-06-16 16:25:58 INFO  org.hibernate.Version     - HHH000412: Hibernate ORM core version 5.4.30.Final
+2021-06-16 16:25:59 INFO  org.hibernate.annotations.common.Version     - HCANN000001: Hibernate Commons Annotations {5.1.2.Final}
+2021-06-16 16:26:00 WARN  org.hibernate.orm.connections.pooling     - HHH10001002: Using Hibernate built-in connection pool (not for production use!)
+2021-06-16 16:26:00 INFO  org.hibernate.orm.connections.pooling     - HHH10001005: using driver [com.mysql.cj.jdbc.Driver] at URL [jdbc:mysql://localhost:3306/test1]
+2021-06-16 16:26:00 INFO  org.hibernate.orm.connections.pooling     - HHH10001001: Connection properties: {user=root, password=****, autocommit=false}
+2021-06-16 16:26:00 INFO  org.hibernate.orm.connections.pooling     - HHH10001003: Autocommit mode: false
+2021-06-16 16:26:00 INFO  org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl     - HHH000115: Hibernate connection pool size: 5 (min=1)
+2021-06-16 16:26:01 INFO  org.hibernate.dialect.Dialect     - HHH000400: Using dialect: org.hibernate.dialect.MySQL8Dialect
