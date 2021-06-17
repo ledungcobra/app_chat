@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SApplicationContext {
+
     private static String url;
     private static int threadsInt;
     public static ExecutorService service;
@@ -67,7 +68,11 @@ public class SApplicationContext {
                         System.out.println("Listening");
                         Socket socket = tcpServer.listenConnection();
                         service.submit(() -> {
-                            tcpServer.process(socket);
+                            try {
+                                tcpServer.process(socket);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         });
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -89,7 +94,11 @@ public class SApplicationContext {
             sessionFactory.close();
             currentUsers.clear();
             tcpServer.close();
-            service.shutdownNow();
+
+            service.submit(() -> {
+                configScreen.updateOnlineList(currentUsers);
+                service.shutdownNow();
+            });
 
         } catch (Exception e) {
             e.printStackTrace();

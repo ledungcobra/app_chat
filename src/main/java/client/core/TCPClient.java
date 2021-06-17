@@ -1,10 +1,8 @@
 package client.core;
 
-import client.context.CApplicationContext;
 import common.dto.Command;
 import common.dto.CommandObject;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import utils.SocketExtension;
 
 import java.io.Closeable;
@@ -12,13 +10,10 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static utils.Constants.HOST;
-import static utils.Constants.PORT;
+import static client.context.CApplicationContext.*;
 
 @Getter
 public class TCPClient implements Closeable {
@@ -39,6 +34,7 @@ public class TCPClient implements Closeable {
 
 
     public Socket connect() throws IOException {
+        if (this.socket != null) this.socket.close();
 
         this.socket = new Socket(host, port);
         oos = SocketExtension.getObjectOutputStream(this.socket);
@@ -51,7 +47,7 @@ public class TCPClient implements Closeable {
     public CompletableFuture<Socket> connectAsync() {
         CompletableFuture<Socket> completableFuture = new CompletableFuture<>();
 
-        CApplicationContext.service.submit(() -> {
+        networkThreadService.submit(() -> {
             try {
                 this.socket = connect();
                 completableFuture.complete(socket);
@@ -67,10 +63,10 @@ public class TCPClient implements Closeable {
     }
 
     public Future<Boolean> sendRequestAsync(CommandObject commandObject) {
-        return CApplicationContext.service.submit(() -> sendRequest(commandObject));
+        return networkThreadService.submit(() -> sendRequest(commandObject));
     }
 
-    public synchronized boolean sendRequest(CommandObject commandObject) {
+    public boolean sendRequest(CommandObject commandObject) {
         if (this.socket == null) return false;
         synchronized (oos) {
             try {
@@ -85,23 +81,30 @@ public class TCPClient implements Closeable {
 
 
     // Run And wait
-    public void listeningOnEventAsync() {
+    public synchronized void listeningOnEventAsync() {
 
         System.out.println("CLIENT LISTENING");
         this.isListening.set(true);
-        CApplicationContext.service.submit(() -> {
+        networkThreadService.submit(() -> {
+            out:
             while (isListening.get()) {
-                CommandObject commandObject = readObjectFromInputStream();
-
-                synchronized (this.handlers) {
+                try {
+                    CommandObject commandObject = readObjectFromInputStream();
                     for (int i = 0; i < this.handlers.size(); i++) {
                         System.out.println("Number of listener is " + handlers.size());
-                        if (commandObject == null) continue;
+                        if (commandObject == null) {
+                            isListening.set(false);
+                            System.out.println("STOP LISTENING");
+                            break out;
+                        }
                         System.out.println("RECEIVED " + commandObject);
                         System.out.println("Passs to " + handlers.get(i).getClass().getSimpleName());
                         handlers.get(i).listenOnNetworkEvent(commandObject);
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+
             }
         });
     }
@@ -113,6 +116,7 @@ public class TCPClient implements Closeable {
                 object = (CommandObject) ois.readObject();
             } catch (Exception e) {
                 object = null;
+                e.printStackTrace();
             }
         }
 
@@ -122,6 +126,7 @@ public class TCPClient implements Closeable {
     @Override
     public void close() throws IOException {
         if (socket != null) {
+            handlers.clear();
             isListening.set(false);
             this.socket.close();
             this.socket = null;
@@ -145,8 +150,14 @@ public class TCPClient implements Closeable {
         }
     }
 
+    /**
+     *  Clear all thread
+     * @throws IOException
+     */
     public void reconnect() throws IOException {
+        networkThreadService.shutdownNow();
         connect();
+        networkThreadService = Executors.newFixedThreadPool(6);
         listeningOnEventAsync();
     }
 }

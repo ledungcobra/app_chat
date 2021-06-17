@@ -26,7 +26,7 @@ public class UserService extends BaseService<User, Long> {
     public Future<User> findByUserNameAsync(String userName) {
         return service.submit(() -> {
             if (dao instanceof UserDao) {
-                return doTransaction2(() -> ((UserDao) dao).findByUserName(userName));
+                return ((UserDao) dao).findByUserName(userName);
             }
             return null;
         });
@@ -99,7 +99,7 @@ public class UserService extends BaseService<User, Long> {
     public Future<List<User>> getFriends(Long id) {
         return service.submit(() ->
                 doTransaction2(
-                        () -> userDao.getFriends(id)
+                        () -> ((UserDao)userDao).getFriends(id)
                 )
         );
     }

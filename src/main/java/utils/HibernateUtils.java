@@ -22,7 +22,6 @@ public class HibernateUtils {
         configuration.setProperty(HIBERNATE_CONNECTION_URL, dbUrl);
         configuration.setProperty(HIBERNATE_CONNECTION_PASSWORD, password);
         sessionFactory = configuration.buildSessionFactory();
-
         return sessionFactory;
 
     }

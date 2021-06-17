@@ -48,14 +48,14 @@ public class MessageRequestHandler extends RequestHandler {
             List<PrivateMessageDto> privateMessageDtos = privateMessageList.stream()
                     .map(p -> {
                         PrivateMessageDto privateMessageDto = new PrivateMessageDto();
-                        privateMessageDto.setReceiver(ObjectMapper.map(p.getReceiver()));
-                        privateMessageDto.setSender(ObjectMapper.map(p.getSender()));
+                        privateMessageDto.setReceiver(Mapper.map(p.getReceiver()));
+                        privateMessageDto.setSender(Mapper.map(p.getSender()));
                         privateMessageDto.setContent(p.getContent());
                         privateMessageDto.setId(p.getId());
                         return privateMessageDto;
                     }).collect(Collectors.toList());
 
-            sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_ACK, new ResponsePrivateMessageDto(ObjectMapper.map(friend), privateMessageDtos)));
+            sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_ACK, new ResponsePrivateMessageDto(Mapper.map(friend), privateMessageDtos)));
         } catch (InterruptedException | ExecutionException e) {
             sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_NACK, e.getMessage()));
             e.printStackTrace();
@@ -69,8 +69,8 @@ public class MessageRequestHandler extends RequestHandler {
                     messageDto.getReceiver().getId(), messageDto.getContent(), messageDto.getId()).get();
 
             PrivateMessageDto savedMessageDto = new PrivateMessageDto();
-            savedMessageDto.setReceiver(ObjectMapper.map(privateMessage.getReceiver()));
-            savedMessageDto.setSender(ObjectMapper.map(privateMessage.getSender()));
+            savedMessageDto.setReceiver(Mapper.map(privateMessage.getReceiver()));
+            savedMessageDto.setSender(Mapper.map(privateMessage.getSender()));
             savedMessageDto.setId(privateMessage.getId());
             savedMessageDto.setContent(privateMessage.getContent());
             sendResponseAsync(new CommandObject(S2C_SEND_PRIVATE_MESSAGE_ACK, savedMessageDto));

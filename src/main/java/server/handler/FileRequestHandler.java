@@ -21,7 +21,7 @@ import static server.context.SApplicationContext.service;
 
 public class FileRequestHandler extends RequestHandler {
 
-    public static final int MAX_FILESIZE = 1024;
+    public static final int MAX_FILE_SIZE = 1024;
 
     public FileRequestHandler(ObjectInputStream objectInputStream, ObjectOutputStream objectOutputStream, Socket socket) {
         super(objectInputStream, objectOutputStream, socket);
@@ -39,10 +39,11 @@ public class FileRequestHandler extends RequestHandler {
         try {
             SendFileRequestDto fileRequestDto = (SendFileRequestDto) commandObject.getPayload();
 
-            if (fileRequestDto.fileSize > MAX_FILESIZE) {
-                sendResponseAsync(new CommandObject(S2S_SEND_PRIVATE_FILE_NACK, "The file size cannot exceed " + MAX_FILESIZE + " MB"));
+            if (fileRequestDto.fileSize > MAX_FILE_SIZE) {
+                sendResponseAsync(new CommandObject(S2S_SEND_PRIVATE_FILE_NACK, "The file size cannot exceed " + MAX_FILE_SIZE + " MB"));
                 return;
             }
+
             Socket foundSocket = null;
             Set<Map.Entry<Socket, User>> entrySet = currentUsers.entrySet();
 

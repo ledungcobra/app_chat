@@ -3,7 +3,7 @@ package server.handler;
 import common.dto.Command;
 import common.dto.CommandObject;
 import common.dto.FriendOfferDto;
-import common.dto.ObjectMapper;
+import common.dto.Mapper;
 import server.context.SApplicationContext;
 import server.entities.FriendOffer;
 import server.entities.User;
@@ -51,7 +51,7 @@ public class FriendRequestHandler extends RequestHandler
 
     private void unFriends(CommandObject commandObject)
     {
-        User user = currentUsers.get(socket);
+        User user = getCurrentUser();
         if (user == null)
         {
             sendResponseAsync(new CommandObject(S2C_SEND_UNFRIEND_REQUEST_NACK, "Cannot find this user"));
@@ -136,7 +136,7 @@ public class FriendRequestHandler extends RequestHandler
 
         Long[] friendIds = (Long[]) commandObject.getPayload();
 
-        User user = currentUsers.get(socket);
+        User user = getCurrentUser();
 
         Set<FriendOffer> friendOffers = Arrays.stream(friendIds).map(id -> {
 
@@ -197,7 +197,7 @@ public class FriendRequestHandler extends RequestHandler
                 synchronized (anotherUserStream)
                 {
                     anotherUserStream.writeObject(new CommandObject(S2C_NOTIFY_NEW_FRIEND_OFFER,
-                            ObjectMapper.<FriendOffer, FriendOfferDto>map(friendOffer)));
+                            Mapper.<FriendOffer, FriendOfferDto>map(friendOffer)));
                     anotherUserStream.flush();
                     return true;
                 }

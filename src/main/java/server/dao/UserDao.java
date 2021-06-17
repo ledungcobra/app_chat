@@ -1,5 +1,6 @@
 package server.dao;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import server.entities.User;
@@ -15,27 +16,50 @@ public class UserDao extends BaseDao<User, Long> {
     }
 
     public User findByUserName(String userName) {
+        Session session = null;
         try {
-            User user = (User) getCurrentSession()
+            session = openSession();
+
+            User user = (User) session
                     .createQuery("FROM User u WHERE u.userName=:userName")
                     .setParameter("userName", userName).getSingleResult();
             return user;
         } catch (Exception e) {
             return null;
+        } finally {
+            session.close();
         }
     }
 
     public List<User> findByKeyword(String keyword) {
+        Session session = null;
         try {
-            getCurrentSession().beginTransaction();
-            Query query = getCurrentSession()
+            session = openSession();
+            Query query = session
                     .createQuery("FROM User u where u.displayName like :k");
             query.setParameter("k", "%" + keyword + "%");
             List resultList = query.getResultList();
-            getCurrentSession().close();
             return resultList;
         } catch (Exception e) {
             return new ArrayList<>();
+        } finally {
+            session.close();
+        }
+    }
+
+    public List<User> getFriends(Long id) {
+        Session session = null;
+        try {
+            session = openSession();
+
+            List<User> friends = session
+                    .createQuery("SELECT DISTINCT f.partner FROM FriendShip f WHERE f.owner.id=:id", User.class)
+                    .setParameter("id", id).getResultList();
+            return friends;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        } finally {
+            session.close();
         }
     }
 }

@@ -54,6 +54,10 @@ public class TCPServer implements Closeable {
 
     // Run and wait
     public void process(Socket socket) {
+        if(currentUsers.containsKey(socket)) {
+            System.out.println("Listening to this user already");
+            return;
+        }
         List<RequestHandler> handlers = registerHandlers(socket);
         listeningOnEvent(socket, handlers);
     }
@@ -75,9 +79,9 @@ public class TCPServer implements Closeable {
         requestHandlers.add(new PingRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new GetListRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new FriendRequestHandler(inputStream, outputStream, socket));
-        requestHandlers.add(new NotificationRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new MessageRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new FileRequestHandler(inputStream, outputStream, socket));
+        requestHandlers.add(new CallRequestHandler(inputStream, outputStream, socket));
 
         return requestHandlers;
     }
@@ -93,7 +97,7 @@ public class TCPServer implements Closeable {
             System.out.println("RECEIVED " + commandObject);
 
             if (commandObject == null) {
-                log.debug("EXIT");
+                System.out.println("A client exit");
                 synchronized (this.objectOutputStreamMap) {
                     this.objectOutputStreamMap.remove(socket);
                 }

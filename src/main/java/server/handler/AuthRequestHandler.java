@@ -1,10 +1,7 @@
 package server.handler;
 
 import common.dto.*;
-import lombok.SneakyThrows;
-import lombok.extern.java.Log;
 import lombok.extern.log4j.Log4j;
-import lombok.extern.slf4j.Slf4j;
 import org.mindrot.jbcrypt.BCrypt;
 import server.context.SApplicationContext;
 import server.entities.User;
@@ -83,7 +80,7 @@ public class AuthRequestHandler extends RequestHandler {
                 ) {
                     // Success login
                     response.setCommand(Command.S2C_LOGIN_ACK);
-                    UserDto userDto = ObjectMapper.<User, UserDto>map(userInDb);
+                    UserDto userDto = Mapper.<User, UserDto>map(userInDb);
 
                     response.setPayload(userDto);
                     currentUsers.put(socket, userInDb);
@@ -117,10 +114,10 @@ public class AuthRequestHandler extends RequestHandler {
             if (userInDb == null) {
                 userAuthDto.setPassword(BCrypt.hashpw(userAuthDto.getPassword(), BCrypt.gensalt(4)));
                 response.setCommand(Command.S2C_REGISTER_ACK);
-                User user = ObjectMapper.map(userAuthDto);
+                User user = Mapper.map(userAuthDto);
                 userService.insert(user).get();
 
-                response.setPayload(ObjectMapper.<User, UserDto>map(user));
+                response.setPayload(Mapper.<User, UserDto>map(user));
                 sendResponseAsync(response);
 
             } else {

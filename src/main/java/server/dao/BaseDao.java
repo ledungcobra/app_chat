@@ -15,6 +15,7 @@ public abstract class BaseDao<T extends BaseEntity, ID extends Serializable> {
 
     protected final SessionFactory sessionFactory;
     protected final Class<T> clazz;
+    protected Session currentSession;
 
     public BaseDao(SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
@@ -22,48 +23,44 @@ public abstract class BaseDao<T extends BaseEntity, ID extends Serializable> {
                 .getGenericSuperclass()).getActualTypeArguments()[0]);
     }
 
-    protected Session getCurrentSession() {
-        return this.sessionFactory.getCurrentSession();
+    protected Session openSession() {
+        this.currentSession = this.sessionFactory.openSession();
+        return this.currentSession;
     }
 
+
     public T find(ID id) {
-        T t = this.getCurrentSession().get(clazz, id);
+        Session s = this.openSession();
+        T t = s.get(clazz, id);
+        s.close();
         return t;
     }
 
     public void delete(T object) {
-        this.getCurrentSession().delete(object);
+
+        Session s = this.openSession();
+        s.beginTransaction();
+        s.delete(object);
+        s.getTransaction().commit();
+        s.close();
     }
 
     public T insert(T object) {
-        this.getCurrentSession().save(object);
+        Session session = this.openSession();
+        session.beginTransaction();
+        session.save(object);
+        session.getTransaction().commit();
+        session.close();
         return object;
     }
 
-    public void deleteById(ID id) {
-        this.getCurrentSession().createQuery("DELETE " + clazz.getSimpleName() + "x WHERE x.id=:id")
-                .setParameter("id", id)
-                .executeUpdate();
-        this.getCurrentSession().clear();
-    }
-
-    public List<T> findAll() {
-        return this.getCurrentSession().createQuery("FROM " + clazz.getSimpleName()).getResultList();
-    }
-
     public void update(T object) {
-        this.getCurrentSession().update(object);
+        Session session = this.openSession();
+        session.beginTransaction();
+        session.update(object);
+        session.getTransaction().commit();
+        session.close();
     }
 
-    public List<User> getFriends(Long id) {
-        try {
-            List<User> friends =getCurrentSession()
-                    .createQuery("SELECT DISTINCT f.partner FROM FriendShip f WHERE f.owner.id=:id", User.class)
-                    .setParameter("id", id).getResultList();
 
-            return friends;
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
 }

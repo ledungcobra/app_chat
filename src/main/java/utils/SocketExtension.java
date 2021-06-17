@@ -1,19 +1,13 @@
 package utils;
 
 import common.dto.CommandObject;
-import common.dto.FriendOfferDto;
-import common.dto.ObjectMapper;
 import lombok.NonNull;
-import server.context.SApplicationContext;
-import server.entities.FriendOffer;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.concurrent.Future;
 
-import static common.dto.Command.S2C_NOTIFY_NEW_FRIEND_OFFER;
 import static server.core.TCPServer.objectOutputStreamMap;
 
 public class SocketExtension {

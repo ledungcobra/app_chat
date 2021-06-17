@@ -4,7 +4,7 @@ import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
 
-public class ObjectMapper
+public class Mapper
 {
 
     public static <T1, T2> T2 map(T1 source, T2... t2)

@@ -5,13 +5,11 @@
  */
 package client.view;
 
-import client.context.CApplicationContext;
 import client.core.ResponseHandler;
 import common.dto.Command;
 import common.dto.CommandObject;
 import common.dto.UserAuthDto;
 import common.dto.UserDto;
-import lombok.SneakyThrows;
 import lombok.val;
 import utils.Navigator;
 import utils.PropertiesFileUtils;
@@ -72,7 +70,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
     }
 
     private void connectToDefaultServer(String fileName) {
-        service.submit(() -> {
+        networkThreadService.submit(() -> {
             Properties properties = PropertiesFileUtils.readPropertiesFile(fileName);
             String[] tokens = properties.getProperty(SERVER_DEFAULT).split(":");
 
@@ -149,7 +147,7 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
         }
 
 
-        service.submit(() -> {
+        uiThreadService.submit(() -> {
 
             try {
                 if (!tcpClient.stillAlive()) {
@@ -191,15 +189,10 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
             return;
         }
 
-        service.submit(() -> {
+        uiThreadService.submit(() -> {
             try {
 
-                if (!tcpClient.stillAlive()) {
-                    System.out.println("Reconnect sync");
-                    tcpClient.reconnect();
-                    System.out.println("Reconnect success");
-                }
-
+                tcpClient.reconnect();
 
                 val success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
                 if (!success) {
@@ -218,38 +211,36 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
     @Override
     public void listenOnNetworkEvent(CommandObject commandObject) {
-//        if (commandObject.getCommand().equals(Command.S2C_EXIT))
-//        {
-//            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Receive exit signal"));
-//            closeHandler();
-//        } else
+        System.out.println("------------------------------------------");
+        switch (commandObject.getCommand()) {
+            case S2C_LOGIN_NACK:
+                runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login fail"));
+                break;
+            case S2C_LOGIN_ACK:
+                this.data = new HashMap<>();
 
-        if (commandObject.getCommand().equals(Command.S2C_LOGIN_NACK)) {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Login fail"));
-//            tcpClient.sendRequestAsync(new CommandObject(Command.C2S_EXIT));
-
-        } else if (commandObject.getCommand().equals(Command.S2C_LOGIN_ACK)) {
-            this.data = new HashMap<>();
-
-            if (rememberMeCheck.isSelected()) {
-                try {
-                    writeObjectToFileAsync(AUTH_TXT, commandObject.getPayload());
-                } catch (IOException e) {
-                    runOnUiThread(() -> {
-                        JOptionPane.showMessageDialog(this, e.getMessage());
-                    });
-                    e.printStackTrace();
+                if (rememberMeCheck.isSelected()) {
+                    try {
+                        writeObjectToFileAsync(AUTH_TXT, commandObject.getPayload());
+                    } catch (IOException e) {
+                        runOnUiThread(() -> {
+                            JOptionPane.showMessageDialog(this, e.getMessage());
+                        });
+                        e.printStackTrace();
+                    }
+                    data.put(REMEMBER_ME, true);
                 }
-                data.put(REMEMBER_ME, true);
-            }
 
-            data.put(USER, commandObject.getPayload());
-            new Navigator<ChatScreen>().navigate(data, true);
+                data.put(USER, commandObject.getPayload());
+                new Navigator<ChatScreen>().navigate(data, true);
 
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_ACK)) {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success"));
-        } else if (commandObject.getCommand().equals(Command.S2C_REGISTER_NACK)) {
-            runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register fail" + commandObject.getPayload()));
+                break;
+            case S2C_REGISTER_ACK:
+                runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register success"));
+                break;
+            case S2C_REGISTER_NACK:
+                runOnUiThread(() -> JOptionPane.showMessageDialog(this, "Register fail" + commandObject.getPayload()));
+                break;
         }
     }
 

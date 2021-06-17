@@ -1,6 +1,7 @@
 package server.dao;
 
 import lombok.val;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import server.entities.FriendOffer;
 
@@ -15,51 +16,59 @@ public class FriendOfferDao extends BaseDao<FriendOffer, Long> {
     }
 
     public List<FriendOffer> getUnSeenOffer(Long userId) {
+        Session session = null;
         try {
-            val query = getCurrentSession().createQuery("from FriendOffer f where f.partner.id=:userId and f.accepted = null");
+            session = openSession();
+            val query = session.createQuery("from FriendOffer f where f.partner.id=:userId and f.accepted = null");
             query.setParameter("userId", userId);
-            return query.getResultList();
+            List resultList = query.getResultList();
+            return resultList;
         } catch (Exception e) {
             return new ArrayList<>();
+        } finally {
+            session.close();
         }
 
     }
 
     public void acceptFriendForUser(Long friendOfferId) {
+        Session session = null;
         try {
-            int numberOfRows = getCurrentSession().createNativeQuery(" INSERT INTO FRIENDSHIP(USER_ID,PARTNER_ID) " +
+            session = openSession();
+            session.beginTransaction();
+            session.createNativeQuery(" INSERT INTO FRIENDSHIP(USER_ID,PARTNER_ID) " +
                     " SELECT DISTINCT fo.OWNER_ID, fo.PARTNER FROM FRIEND_OFFER fo " +
                     " WHERE fo.id=:id ")
                     .setParameter("id", friendOfferId).executeUpdate();
-            System.out.println("Insert " + numberOfRows);
-
-            numberOfRows = getCurrentSession().createNativeQuery(" INSERT INTO FRIENDSHIP(USER_ID,PARTNER_ID) " +
+            session.createNativeQuery(" INSERT INTO FRIENDSHIP(USER_ID,PARTNER_ID) " +
                     " SELECT DISTINCT fo.PARTNER,fo.OWNER_ID FROM FRIEND_OFFER fo " +
                     " WHERE fo.id=:id ")
                     .setParameter("id", friendOfferId).executeUpdate();
 
-            System.out.println("Insert " + numberOfRows);
 
-            numberOfRows = getCurrentSession().createNativeQuery("UPDATE FRIEND_OFFER SET ACCEPTED=1 WHERE ID=:id")
+            session.createNativeQuery("UPDATE FRIEND_OFFER SET ACCEPTED=1 WHERE ID=:id")
                     .setParameter("id", friendOfferId)
                     .executeUpdate();
-            System.out.println("Update " + numberOfRows);
-            getCurrentSession().clear();
+            session.getTransaction().commit();
 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 
     public void ignoreFriendForUser(Long friendOfferId) {
+        Session session = null;
         try {
-            int numberOfRows = getCurrentSession().createNativeQuery("UPDATE FRIEND_OFFER SET ACCEPTED=0 WHERE ID=:id")
+            session = openSession();
+            session.createNativeQuery("UPDATE FRIEND_OFFER SET ACCEPTED=0 WHERE ID=:id")
                     .setParameter("id", friendOfferId)
                     .executeUpdate();
-            System.out.println("Update " + numberOfRows);
-
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            session.close();
         }
     }
 }

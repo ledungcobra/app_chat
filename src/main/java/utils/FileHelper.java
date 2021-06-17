@@ -1,7 +1,6 @@
 package utils;
 
 import client.context.CApplicationContext;
-import server.context.SApplicationContext;
 
 import java.io.*;
 import java.util.concurrent.CompletableFuture;
@@ -56,7 +55,7 @@ public class FileHelper
     public static CompletableFuture<Object> readObjectToFile(String fileName)
     {
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-        CApplicationContext.service.submit(() -> {
+        CApplicationContext.networkThreadService.submit(() -> {
             File file = new File(fileName);
             if (file.exists())
             {
@@ -90,7 +89,7 @@ public class FileHelper
 
         CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
 
-        CApplicationContext.service.submit(() -> {
+        CApplicationContext.networkThreadService.submit(() -> {
             File file = new File(fileName);
             try
             {

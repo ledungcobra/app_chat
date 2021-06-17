@@ -7,6 +7,8 @@ package client.view;
 
 import client.core.ResponseHandler;
 import common.dto.*;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 import utils.Navigator;
 
@@ -29,8 +31,10 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static client.context.CApplicationContext.service;
+import static client.context.CApplicationContext.networkThreadService;
 import static client.context.CApplicationContext.tcpClient;
+import static client.view.CallVoiceScreen.CALL_FRIEND_OBJECT;
+import static client.view.CallVoiceScreen.CALL_MODE;
 import static client.view.LoginScreen.*;
 import static common.dto.Command.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
@@ -41,6 +45,18 @@ import static utils.FileHelper.deleteFileAsync;
 /**
  * @author ledun
  */
+
+@Getter
+@Setter
+class ContainerObject {
+    private FriendDto friendDto;
+    private List<PrivateMessageDto> messageDtos = new ArrayList<>();
+
+    public ContainerObject(FriendDto friendDto) {
+        this.friendDto = friendDto;
+    }
+}
+
 public class ChatScreen extends AbstractScreen implements ResponseHandler, NetworkListener {
 
     public static final String SEARCH_KEYWORD = "SEARCH_KEYWORD";
@@ -50,11 +66,17 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     private DefaultListModel<FriendDto> friendListModel;
 
     private UserDto userDto;
-    private Map<FriendDto, List<PrivateMessageDto>> friendChatTabMap;
+    private Map<FriendDto, ContainerObject> friendChatTabMap;
+    ButtonGroup buttonGroup;
+
 
     @Override
     public void onCreateView() {
         initComponents();
+        buttonGroup = new ButtonGroup();
+
+        buttonGroup.add(userRadio);
+        buttonGroup.add(groupRadio);
 
         friendChatTabMap = new HashMap<>();
         enterToSubmitCheck.setSelected(true);
@@ -64,7 +86,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_FRIEND_LIST, userDto.getId()));
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_GROUP_LIST, userDto.getId()));
-        tcpClient.sendRequestAsync(new CommandObject(C2S_GET_UNSEEN_NOTIFICATIONS, userDto.getId()));
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_UNSEEN_FRIEND_OFFERS, userDto.getId()));
     }
 
@@ -118,6 +139,20 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         });
 
         this.friendsList.addListSelectionListener(e -> addNewChatFriendChatTab(e));
+        this.callVoiceBtn.addActionListener((e) -> chatVoiceActionPerformed());
+
+    }
+
+    private void chatVoiceActionPerformed() {
+        int selectedIndex = friendsList.getSelectedIndex();
+
+        if (selectedIndex == -1) {
+            JOptionPane.showMessageDialog(this, "You must select at least a friend to perform this action");
+            return;
+        }
+        openCallVoiceDialog(CallVoiceScreen.CallMode.SEND_A_VOICE_CALL, friendsList.getSelectedValue());
+
+
     }
 
     private void sendFileActionPerform() {
@@ -151,7 +186,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     }
 
     private void readFileAsync(File file, Consumer<byte[]> consumer, Consumer<Exception> exceptionHandler) {
-        service.submit(() -> {
+        networkThreadService.submit(() -> {
             Path path = Paths.get(file.getAbsolutePath());
             try {
                 byte[] data = Files.readAllBytes(path);
@@ -165,16 +200,28 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     private void performSendMessage() {
 
-        FriendDto friendDto = friendsList.getSelectedValue();
-        if (friendDto == null) {
-            showMessageDialog(this, "Cannot send message reason friend dto is null");
+//        FriendDto friendDto = friendsList.getSelectedValue();
+        int index = chatTabs.getSelectedIndex();
+        if (index == -1) {
+            showMessageDialog(this, "You must select a least a friend to send message");
             return;
         }
 
+        String selectedTab = chatTabs.getTitleAt(index);
+        FriendDto friendDto = this.friendChatTabMap.entrySet()
+                .stream()
+                .filter(e -> selectedTab.equals(this.generateTabName(e.getKey())))
+                .findFirst().map(e -> e.getKey())
+                .orElse(null);
+
+        if (friendDto == null) {
+            showMessageDialog(this, "Friend cannot be null");
+            return;
+        }
         String content = chatInput.getText();
         if (content == null || content.isEmpty()) return;
 
-        List<PrivateMessageDto> messageDtos = friendChatTabMap.get(friendDto);
+        List<PrivateMessageDto> messageDtos = friendChatTabMap.get(friendDto).getMessageDtos();
         Long prevMessId = null;
         if (messageDtos.size() > 0) {
             PrivateMessageDto lastMessage = messageDtos.get(messageDtos.size() - 1);
@@ -198,13 +245,14 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     }
 
     private void addNewChatFriendChatTab(ListSelectionEvent e) {
-
+        if (!e.getValueIsAdjusting()) return;
         JList friendList = (JList) e.getSource();
         FriendDto friendDto = (FriendDto) friendList.getSelectedValue();
         String tabName = generateTabName(friendDto);
         if (friendChatTabMap.containsKey(friendDto)) {
-            int index = chatTabs.indexOfTab(tabName);
 
+            // If contain tab
+            int index = chatTabs.indexOfTab(tabName);
             if (index != -1) {
                 chatTabs.setSelectedIndex(index);
                 return;
@@ -251,15 +299,20 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 Component selected = chatTabs.getSelectedComponent();
 
                 if (selected != null) {
-                    ((JButton) e.getSource()).removeActionListener(this);
                     chatTabs.remove(selected);
                     friendChatTabMap.remove(friendDto);
+                    ((JButton) e.getSource()).removeActionListener(this);
+
+                    if (friendChatTabMap.size() == 0) {
+                        ChatScreen.this.friendsList.clearSelection();
+                    }
+
                 }
             }
         };
 
         btnClose.addActionListener(actionListener);
-        friendChatTabMap.put(friendDto, new ArrayList<>());
+        friendChatTabMap.put(friendDto, new ContainerObject(friendDto));
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), friendDto.getId(), 0, 100)));
 
     }
@@ -323,7 +376,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 }
             });
         }
-
         tcpClient.sendRequestAsync(new CommandObject(C2S_LOGOUT));
         finish();
     }
@@ -366,15 +418,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 });
                 break;
             }
-            case S2C_GET_UNSEEN_NOTIFICATION_ACK: {
-                List<NotificationDto> notificationDtos = (List<NotificationDto>) commandObject.getPayload();
-                List<Long> markSeenNotification = notificationDtos.stream()
-                        .map(n -> n.getId()).collect(Collectors.toList());
 
-                tcpClient.sendRequestAsync(new CommandObject(C2S_MARK_SEEN_NOTIFICATIONS, markSeenNotification));
-                runOnUiThread(() -> updateNotification(notificationDtos));
-                break;
-            }
             case S2C_NOTIFY_NEW_FRIEND_OFFER: {
                 FriendOfferDto notificationDto = (FriendOfferDto) commandObject.getPayload();
                 runOnUiThread(() -> addNewFriendOfferToNotification(notificationDto));
@@ -396,8 +440,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_SEND_PRIVATE_MESSAGE_ACK: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
-                List<PrivateMessageDto> privateMessages = friendChatTabMap.get(receiveMessage.getReceiver());
-                privateMessages.add(receiveMessage);
+                friendChatTabMap.get(receiveMessage.getReceiver()).getMessageDtos()
+                        .add(receiveMessage);
                 runOnUiThread(() ->
                         updatePrivateMessageFor(receiveMessage.getReceiver())
                 );
@@ -405,10 +449,10 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_RECEIVE_A_PRIVATE_MESSAGE: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
-                FriendDto sender = ObjectMapper.map(receiveMessage.getSender());
+                FriendDto sender = Mapper.map(receiveMessage.getSender());
 
-                List<PrivateMessageDto> privateMessages = friendChatTabMap.get(sender);
-                privateMessages.add(receiveMessage);
+                friendChatTabMap.get(sender).getMessageDtos()
+                        .add(receiveMessage);
                 runOnUiThread(() ->
                         updatePrivateMessageFor(sender)
                 );
@@ -419,9 +463,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 if (this.friendChatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
                     this.friendChatTabMap
                             .get(responsePrivateMessageDto.getFriendDto())
+                            .getMessageDtos()
                             .addAll(responsePrivateMessageDto.getMessageDtoList());
                 } else {
-                    this.friendChatTabMap.put(responsePrivateMessageDto.getFriendDto(), new ArrayList<>());
+                    this.friendChatTabMap
+                            .put(responsePrivateMessageDto.getFriendDto(), new ContainerObject(responsePrivateMessageDto.getFriendDto()));
                 }
                 runOnUiThread(() -> updatePrivateMessageFor(responsePrivateMessageDto.getFriendDto()));
 
@@ -433,8 +479,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 receiveFileHandle(commandObject);
                 break;
             }
-
-            case C2S_SEND_PRIVATE_MESSAGE:
+            case S2C_RECEIVE_A_PHONE_CALL: {
+                openCallVoiceDialog(CallVoiceScreen.CallMode.RECEIVE_A_VOICE_CALL, (FriendDto) commandObject.getPayload());
+                break;
+            }
+//            case C2S_SEND_PRIVATE_MESSAGE:
             case S2S_SEND_PRIVATE_FILE_ACK:
             case S2S_SEND_PRIVATE_FILE_NACK:
             case S2C_GET_PRIVATE_MESSAGES_NACK:
@@ -443,13 +492,18 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             case S2C_SEND_IGNORE_FRIEND_OFFERS_NACK:
             case S2C_SEND_UNFRIEND_REQUEST_NACK:
             case S2C_GET_UNSEEN_FRIEND_OFFERS_NACK:
-            case S2C_GET_UNSEEN_NOTIFICATION_NACK:
             case S2C_SEND_ADD_FRIEND_OFFERS_TO_FRIENDS_NACK:
             case S2C_SEND_ADD_FRIEND_OFFERS_TO_FRIENDS_FAIL:
                 runOnUiThread(() -> showMessageDialog(ChatScreen.this, commandObject.getPayload()));
                 break;
         }
 
+    }
+
+    public void openCallVoiceDialog(CallVoiceScreen.CallMode callMode, FriendDto friendDto) {
+        data.put(CALL_MODE, callMode);
+        data.put(CALL_FRIEND_OBJECT, friendDto);
+        new Navigator<CallVoiceScreen>().navigate(data);
     }
 
     private void receiveFileHandle(CommandObject commandObject) {
@@ -525,7 +579,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         }
 
         File finalFile1 = finalFile;
-        service.submit(() -> {
+        networkThreadService.submit(() -> {
             try (FileOutputStream fileOutputStream = new FileOutputStream(finalFile1)) {
                 fileOutputStream.write(fileContent);
                 success.run();
@@ -536,12 +590,14 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     }
 
     private void updatePrivateMessageFor(FriendDto receiver) {
-        String name = generateTabName(receiver);
-        int index = chatTabs.indexOfTab(name);
-        List<PrivateMessageDto> messageDtos = this.friendChatTabMap.get(receiver);
+        String tabName = generateTabName(receiver);
+        int index = chatTabs.indexOfTab(tabName);
+        List<PrivateMessageDto> messageDtos = this.friendChatTabMap.get(receiver).getMessageDtos();
 
         JScrollPane selectedComponent = (JScrollPane) chatTabs.getComponentAt(index);
         Component[] components = selectedComponent.getComponents();
+
+        out:
         for (Component component : components) {
             if (component instanceof JViewport) {
                 for (Component component1 : ((JViewport) component).getComponents()) {
@@ -557,18 +613,13 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                             return messageText;
                         }).collect(Collectors.toList()));
                         ((JTextArea) component1).setText(messagesTransformed);
+                        break out;
                     }
                 }
 
             }
         }
 
-    }
-
-    private void updateNotification(List<NotificationDto> notificationDtos) {
-        this.notifyModel = new DefaultListModel<NotificationDto>();
-        notificationDtos.forEach(notifyModel::addElement);
-        this.notificationJList.setModel(notifyModel);
     }
 
     private void updateFriendOfferList(List<FriendOfferDto> friendOfferDtos) {
@@ -612,69 +663,41 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jLabel1 = new javax.swing.JLabel();
-        searchFriend = new javax.swing.JTextField();
-        searchBtn = new javax.swing.JButton();
-        sendBtn = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        groupsList = new javax.swing.JList<>();
-        jScrollPane4 = new javax.swing.JScrollPane();
-        friendsList = new javax.swing.JList<>();
-        jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        unfriendBtn = new javax.swing.JButton();
-        removeGroupBtn = new javax.swing.JButton();
-        showNotificationBtn = new javax.swing.JButton();
         logoutBtn = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
         displayNameLbl = new javax.swing.JLabel();
-        jScrollPane5 = new javax.swing.JScrollPane();
-        notificationJList = new javax.swing.JList<>();
-        jLabel5 = new javax.swing.JLabel();
-        markSeenAllNotification = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        friendOfferJList = new javax.swing.JList<>();
-        jLabel6 = new javax.swing.JLabel();
-        acceptFriendBtn = new javax.swing.JButton();
-        ignoreFriendBtn = new javax.swing.JButton();
-        enterToSubmitCheck = new javax.swing.JCheckBox();
         chatTabs = new javax.swing.JTabbedPane();
         jScrollPane6 = new javax.swing.JScrollPane();
         chatInput = new javax.swing.JTextArea();
+        jPanel1 = new javax.swing.JPanel();
+        searchFriend = new javax.swing.JTextField();
+        userRadio = new javax.swing.JRadioButton();
+        groupRadio = new javax.swing.JRadioButton();
+        searchBtn = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        sendBtn = new javax.swing.JButton();
+        enterToSubmitCheck = new javax.swing.JCheckBox();
+        jButton3 = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        acceptFriendBtn = new javax.swing.JButton();
+        ignoreFriendBtn = new javax.swing.JButton();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        friendOfferJList = new javax.swing.JList<>();
+        jPanel4 = new javax.swing.JPanel();
+        removeGroupBtn = new javax.swing.JButton();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        groupsList = new javax.swing.JList<>();
+        jPanel5 = new javax.swing.JPanel();
+        unfriendBtn = new javax.swing.JButton();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        friendsList = new javax.swing.JList<>();
+        callVoiceBtn = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
-        jMenu1 = new javax.swing.JMenu();
-        jMenu2 = new javax.swing.JMenu();
         jMenu3 = new javax.swing.JMenu();
+        jMenu2 = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
-        jLabel1.setText("Search username");
-
-        searchBtn.setText("Search");
-
-        sendBtn.setText("Send");
-
-        jButton3.setText("File");
-
-        jScrollPane3.setViewportView(groupsList);
-
-        jScrollPane4.setViewportView(friendsList);
-
-        jLabel2.setText("Friend");
-
-        jLabel3.setText("Group");
-
-        unfriendBtn.setBackground(new java.awt.Color(255, 0, 0));
-        unfriendBtn.setForeground(new java.awt.Color(255, 0, 51));
-        unfriendBtn.setText("Unfriend");
-
-        removeGroupBtn.setBackground(new java.awt.Color(255, 51, 0));
-        removeGroupBtn.setForeground(new java.awt.Color(255, 51, 51));
-        removeGroupBtn.setText("Remove");
-
-        showNotificationBtn.setText("Hide Notification");
 
         logoutBtn.setText("Logout");
 
@@ -682,34 +705,198 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         displayNameLbl.setText("display name");
 
-        jScrollPane5.setViewportView(notificationJList);
+        chatInput.setColumns(20);
+        chatInput.setRows(5);
+        jScrollPane6.setViewportView(chatInput);
 
-        jLabel5.setText("Notification");
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Search"));
 
-        markSeenAllNotification.setText("Mark all seen");
+        userRadio.setText("User");
 
-        jScrollPane2.setViewportView(friendOfferJList);
+        groupRadio.setText("Group");
+        groupRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                groupRadioActionPerformed(evt);
+            }
+        });
 
-        jLabel6.setText("Friend offer");
+        searchBtn.setText("Search");
+
+        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        jLabel1.setText("Keyword");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jLabel1)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(searchFriend, javax.swing.GroupLayout.PREFERRED_SIZE, 494, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(23, 23, 23)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(userRadio)
+                                        .addComponent(groupRadio))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(searchBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addContainerGap()
+                                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                                .addGap(15, 15, 15)
+                                                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                                        .addComponent(searchFriend, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                        .addComponent(jLabel1))
+                                                                .addGap(13, 13, 13))
+                                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                                                                .addComponent(userRadio)
+                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                                .addComponent(groupRadio))))
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addGap(21, 21, 21)
+                                                .addComponent(searchBtn)))
+                                .addContainerGap())
+        );
+
+        sendBtn.setText("Send");
+
+        enterToSubmitCheck.setText("Enter to submit");
+
+        jButton3.setText("File");
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(enterToSubmitCheck)
+                                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                                .addComponent(sendBtn)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(jButton3)))
+                                .addContainerGap())
+        );
+        jPanel2Layout.setVerticalGroup(
+                jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(enterToSubmitCheck)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(sendBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)))
+        );
+
+        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder("Friend offer"));
 
         acceptFriendBtn.setText("Accept");
 
         ignoreFriendBtn.setText("Ignore");
 
-        enterToSubmitCheck.setText("Enter to submit");
+        jScrollPane2.setViewportView(friendOfferJList);
 
-        chatInput.setColumns(20);
-        chatInput.setRows(5);
-        jScrollPane6.setViewportView(chatInput);
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 195, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                                .addComponent(acceptFriendBtn)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .addComponent(ignoreFriendBtn)))
+                                .addContainerGap())
+        );
+        jPanel3Layout.setVerticalGroup(
+                jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(ignoreFriendBtn)
+                                        .addComponent(acceptFriendBtn))
+                                .addGap(0, 0, 0))
+        );
 
-        jMenu1.setText("File");
-        jMenuBar1.add(jMenu1);
+        jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Group"));
+
+        removeGroupBtn.setBackground(new java.awt.Color(255, 51, 0));
+        removeGroupBtn.setForeground(new java.awt.Color(255, 51, 51));
+        removeGroupBtn.setText("Leave");
+
+        jScrollPane3.setViewportView(groupsList);
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(removeGroupBtn)
+                                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 191, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap())
+        );
+        jPanel4Layout.setVerticalGroup(
+                jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel4Layout.createSequentialGroup()
+                                .addComponent(removeGroupBtn)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 216, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap())
+        );
+
+        jPanel5.setBorder(javax.swing.BorderFactory.createTitledBorder("Friend"));
+
+        unfriendBtn.setBackground(new java.awt.Color(255, 0, 0));
+        unfriendBtn.setForeground(new java.awt.Color(255, 0, 51));
+        unfriendBtn.setText("Unfriend");
+
+        jScrollPane4.setViewportView(friendsList);
+
+        callVoiceBtn.setText("Call voice");
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel5Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 185, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                                .addComponent(unfriendBtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .addComponent(callVoiceBtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                .addContainerGap())
+        );
+        jPanel5Layout.setVerticalGroup(
+                jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel5Layout.createSequentialGroup()
+                                .addComponent(unfriendBtn)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(callVoiceBtn)
+                                .addGap(13, 13, 13)
+                                .addComponent(jScrollPane4)
+                                .addContainerGap())
+        );
+
+        jMenu3.setText("Group management");
+        jMenuBar1.add(jMenu3);
 
         jMenu2.setText("Logout");
         jMenuBar1.add(jMenu2);
-
-        jMenu3.setText("Group Chat");
-        jMenuBar1.add(jMenu3);
 
         setJMenuBar(jMenuBar1);
 
@@ -719,154 +906,104 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(jLabel1)
-                                                .addGap(18, 18, 18)
-                                                .addComponent(searchFriend, javax.swing.GroupLayout.PREFERRED_SIZE, 494, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(35, 35, 35)
-                                                .addComponent(searchBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 99, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addComponent(chatTabs, javax.swing.GroupLayout.PREFERRED_SIZE, 755, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, 612, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(18, 18, 18)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                        .addComponent(enterToSubmitCheck)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                                        .addComponent(chatTabs)
                                                         .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(sendBtn)
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                                                .addComponent(jButton3)))))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                        .addComponent(jLabel4)
+                                                                .addComponent(jScrollPane6, javax.swing.GroupLayout.DEFAULT_SIZE, 628, Short.MAX_VALUE)
+                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                                .addGap(3, 3, 3)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                                                 .addGroup(layout.createSequentialGroup()
-                                                        .addComponent(jLabel3)
+                                                        .addComponent(jLabel4)
+                                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(displayNameLbl)
                                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                        .addComponent(removeGroupBtn))
-                                                .addGroup(layout.createSequentialGroup()
-                                                        .addComponent(jLabel2)
-                                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                        .addComponent(unfriendBtn))
-                                                .addComponent(jScrollPane3, javax.swing.GroupLayout.Alignment.LEADING)
-                                                .addComponent(jScrollPane4, javax.swing.GroupLayout.Alignment.LEADING)))
-                                .addGap(32, 32, 32)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(acceptFriendBtn)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(ignoreFriendBtn))
-                                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 314, Short.MAX_VALUE)
-                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                .addComponent(jLabel6)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(displayNameLbl)
-                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                                .addComponent(logoutBtn))
-                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                                                .addComponent(showNotificationBtn)
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                                                        .addGroup(layout.createSequentialGroup()
-                                                                                .addComponent(jLabel5)
-                                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                                                .addComponent(markSeenAllNotification))
-                                                                        .addComponent(jScrollPane5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 314, Short.MAX_VALUE))))))
+                                                        .addComponent(logoutBtn))
+                                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
-                                .addGap(6, 6, 6)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(logoutBtn)
-                                        .addComponent(jLabel4)
-                                        .addComponent(displayNameLbl))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(jLabel1)
-                                        .addComponent(searchFriend, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(searchBtn)
-                                        .addComponent(showNotificationBtn))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                        .addComponent(jLabel3)
-                                                        .addComponent(removeGroupBtn)
-                                                        .addComponent(jLabel5)
-                                                        .addComponent(markSeenAllNotification))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                                        .addComponent(jScrollPane5)
-                                                        .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 245, Short.MAX_VALUE))
-                                                .addGap(17, 17, 17)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                        .addComponent(jLabel2)
-                                                        .addComponent(unfriendBtn)
-                                                        .addComponent(jLabel6))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                                        .addGroup(layout.createSequentialGroup()
-                                                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                                .addGap(13, 13, 13)
-                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                                        .addComponent(acceptFriendBtn)
-                                                                        .addComponent(ignoreFriendBtn)))
-                                                        .addComponent(jScrollPane4)))
-                                        .addComponent(chatTabs))
-                                .addGap(18, 18, 18)
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(logoutBtn)
+                                                .addComponent(jLabel4)
+                                                .addComponent(displayNameLbl)))
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                         .addGroup(layout.createSequentialGroup()
-                                                .addComponent(enterToSubmitCheck)
-                                                .addGap(18, 18, Short.MAX_VALUE)
-                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                                        .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                        .addComponent(sendBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 51, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                                .addGap(0, 1, Short.MAX_VALUE)
-                                                .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addGroup(layout.createSequentialGroup()
+                                                                .addComponent(chatTabs, javax.swing.GroupLayout.PREFERRED_SIZE, 548, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                                .addComponent(jScrollPane6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                        .addGroup(layout.createSequentialGroup()
+                                                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                                                        .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                                                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                                                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                                                .addGap(0, 0, Short.MAX_VALUE))))
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addGap(0, 0, Short.MAX_VALUE)
+                                                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                                 .addContainerGap())
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void groupRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_groupRadioActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_groupRadioActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton acceptFriendBtn;
+    private javax.swing.JButton callVoiceBtn;
     private javax.swing.JTextArea chatInput;
     private javax.swing.JTabbedPane chatTabs;
     private javax.swing.JLabel displayNameLbl;
     private javax.swing.JCheckBox enterToSubmitCheck;
     private javax.swing.JList<FriendOfferDto> friendOfferJList;
     private javax.swing.JList<FriendDto> friendsList;
+    private javax.swing.JRadioButton groupRadio;
     private javax.swing.JList<GroupDto> groupsList;
     private javax.swing.JButton ignoreFriendBtn;
     private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
-    private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JScrollPane jScrollPane6;
     private javax.swing.JButton logoutBtn;
-    private javax.swing.JButton markSeenAllNotification;
-    private javax.swing.JList<NotificationDto> notificationJList;
     private javax.swing.JButton removeGroupBtn;
     private javax.swing.JButton searchBtn;
     private javax.swing.JTextField searchFriend;
     private javax.swing.JButton sendBtn;
-    private javax.swing.JButton showNotificationBtn;
     private javax.swing.JButton unfriendBtn;
+    private javax.swing.JRadioButton userRadio;
     // End of variables declaration//GEN-END:variables
 }

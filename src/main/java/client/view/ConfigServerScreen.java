@@ -6,7 +6,6 @@
 package client.view;
 
 import client.context.CApplicationContext;
-import utils.BackButton;
 import utils.PropertiesFileUtils;
 import utils.ScreenStackManager;
 import utils.UIUtils;
@@ -40,7 +39,7 @@ public class ConfigServerScreen extends AbstractScreen {
         model = new DefaultComboBoxModel<>();
         this.serverList.setModel(model);
 
-        CApplicationContext.service.submit(() -> {
+        CApplicationContext.networkThreadService.submit(() -> {
             Properties properties = readPropertiesFile(CLIENT_PROPERTIES_FILE);
             if (properties != null) {
                 String[] serversString = properties.getProperty(SERVERS).split(",");
@@ -166,7 +165,7 @@ public class ConfigServerScreen extends AbstractScreen {
             }
         }
 
-        CApplicationContext.service.submit(() -> {
+        CApplicationContext.networkThreadService.submit(() -> {
             Properties properties = new Properties();
             properties.setProperty(SERVERS, String.join(",", servers));
             if (servers.size() > 0) {
@@ -196,7 +195,7 @@ public class ConfigServerScreen extends AbstractScreen {
         currentIndex = selectedServerIndex;
         insertBtn.setText("Update");
         String updateItem = this.model.getElementAt(selectedServerIndex);
-        String[] tokens = updateItem.split(",");
+        String[] tokens = updateItem.split(":");
 
         urlTextField.setText(tokens[0]);
         portTextField.setText(tokens[1]);
