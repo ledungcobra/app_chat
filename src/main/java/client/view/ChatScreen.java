@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import utils.Navigator;
+import utils.ScreenStackManager;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -33,8 +34,6 @@ import java.util.stream.Collectors;
 
 import static client.context.CApplicationContext.networkThreadService;
 import static client.context.CApplicationContext.tcpClient;
-import static client.view.CallVoiceScreen.CALL_FRIEND_OBJECT;
-import static client.view.CallVoiceScreen.CALL_MODE;
 import static client.view.LoginScreen.*;
 import static common.dto.Command.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
@@ -150,8 +149,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             JOptionPane.showMessageDialog(this, "You must select at least a friend to perform this action");
             return;
         }
-        openCallVoiceDialog(CallVoiceScreen.CallMode.SEND_A_VOICE_CALL, friendsList.getSelectedValue());
-
 
     }
 
@@ -440,6 +437,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_SEND_PRIVATE_MESSAGE_ACK: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
+                if (friendChatTabMap.get(receiveMessage.getReceiver()) == null) {
+                    friendChatTabMap.put(receiveMessage.getReceiver(), new ContainerObject(receiveMessage.getReceiver()));
+                }
                 friendChatTabMap.get(receiveMessage.getReceiver()).getMessageDtos()
                         .add(receiveMessage);
                 runOnUiThread(() ->
@@ -450,7 +450,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             case S2C_RECEIVE_A_PRIVATE_MESSAGE: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
                 FriendDto sender = Mapper.map(receiveMessage.getSender());
-
+                if (!friendChatTabMap.containsKey(sender)) {
+                    friendChatTabMap.put(sender, new ContainerObject(sender));
+                }
                 friendChatTabMap.get(sender).getMessageDtos()
                         .add(receiveMessage);
                 runOnUiThread(() ->
@@ -460,30 +462,31 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_GET_PRIVATE_MESSAGES_ACK: {
                 ResponsePrivateMessageDto responsePrivateMessageDto = (ResponsePrivateMessageDto) commandObject.getPayload();
-                if (this.friendChatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
-                    this.friendChatTabMap
-                            .get(responsePrivateMessageDto.getFriendDto())
-                            .getMessageDtos()
-                            .addAll(responsePrivateMessageDto.getMessageDtoList());
-                } else {
+                if (!this.friendChatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
                     this.friendChatTabMap
                             .put(responsePrivateMessageDto.getFriendDto(), new ContainerObject(responsePrivateMessageDto.getFriendDto()));
                 }
+                this.friendChatTabMap
+                        .get(responsePrivateMessageDto.getFriendDto())
+                        .getMessageDtos()
+                        .addAll(responsePrivateMessageDto.getMessageDtoList());
                 runOnUiThread(() -> updatePrivateMessageFor(responsePrivateMessageDto.getFriendDto()));
 
                 break;
             }
 
             case S2C_RECEIVE_FILE: {
-                System.out.println(userDto.getDisplayName());
                 receiveFileHandle(commandObject);
                 break;
             }
-            case S2C_RECEIVE_A_PHONE_CALL: {
-                openCallVoiceDialog(CallVoiceScreen.CallMode.RECEIVE_A_VOICE_CALL, (FriendDto) commandObject.getPayload());
+
+            case SERVER_STOP_SIGNAL: {
+                runOnUiThread(() -> {
+                    ScreenStackManager.getInstance().popTo(LoginScreen.class);
+                });
                 break;
             }
-//            case C2S_SEND_PRIVATE_MESSAGE:
+
             case S2S_SEND_PRIVATE_FILE_ACK:
             case S2S_SEND_PRIVATE_FILE_NACK:
             case S2C_GET_PRIVATE_MESSAGES_NACK:
@@ -500,11 +503,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     }
 
-    public void openCallVoiceDialog(CallVoiceScreen.CallMode callMode, FriendDto friendDto) {
-        data.put(CALL_MODE, callMode);
-        data.put(CALL_FRIEND_OBJECT, friendDto);
-        new Navigator<CallVoiceScreen>().navigate(data);
-    }
 
     private void receiveFileHandle(CommandObject commandObject) {
         SendFileRequestDto sendFileRequestDto = (SendFileRequestDto) commandObject.getPayload();

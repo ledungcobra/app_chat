@@ -1,13 +1,14 @@
 package server.core;
 
-import lombok.extern.log4j.Log4j;
-import server.context.SApplicationContext;
 import common.dto.CommandObject;
-import server.handler.*;
-import utils.SocketExtension;
+import lombok.extern.log4j.Log4j;
 import lombok.val;
+import server.handler.*;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,9 +16,9 @@ import java.util.*;
 
 import static server.context.SApplicationContext.*;
 import static utils.Constants.INITIALIZING_BEFORE_MSG;
-import static utils.Constants.PORT;
 
 @Log4j(topic = "LOG")
+
 public class TCPServer implements Closeable {
     private ServerSocket socket;
     public static final Map<Socket, ObjectInputStream> objectInputStreamMap;
@@ -26,6 +27,22 @@ public class TCPServer implements Closeable {
     static {
         objectInputStreamMap = new HashMap<>();
         objectOutputStreamMap = new HashMap<>();
+    }
+
+    public void addSocketToMap(Socket socket) {
+        if (objectOutputStreamMap.containsKey(socket) &&
+                objectInputStreamMap.containsKey(socket)
+        ) {
+            return;
+        }
+
+        try {
+            objectInputStreamMap.put(socket, new ObjectInputStream(socket.getInputStream()));
+            objectOutputStreamMap.put(socket, new ObjectOutputStream(socket.getOutputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public TCPServer(String ip, Integer port) throws IOException {
@@ -42,20 +59,19 @@ public class TCPServer implements Closeable {
         if (this.socket == null) throw new Exception(INITIALIZING_BEFORE_MSG);
         Socket anonymousSocket = socket.accept();
 
-        objectInputStreamMap.put(anonymousSocket, SocketExtension.getObjectInputStream(anonymousSocket));
-        objectOutputStreamMap.put(anonymousSocket, SocketExtension.getObjectOutputStream(anonymousSocket));
-
 
         if (anonymousSocket == null) {
             throw new Exception("Cannot initial socket");
         }
+        addSocketToMap(anonymousSocket);
+
         return anonymousSocket;
     }
 
     // Run and wait
     public void process(Socket socket) {
-        if(currentUsers.containsKey(socket)) {
-            System.out.println("Listening to this user already");
+        if (currentUsers.containsKey(socket)) {
+            System.out.println("Already listening to this user ");
             return;
         }
         List<RequestHandler> handlers = registerHandlers(socket);
@@ -63,11 +79,11 @@ public class TCPServer implements Closeable {
     }
 
     public ObjectInputStream getObjectInputStream(Socket socket) {
-        return this.objectInputStreamMap.get(socket);
+        return objectInputStreamMap.get(socket);
     }
 
     public ObjectOutputStream getObjectOutputStream(Socket socket) {
-        return this.objectOutputStreamMap.get(socket);
+        return objectOutputStreamMap.get(socket);
     }
 
     private List<RequestHandler> registerHandlers(Socket socket) {
@@ -81,7 +97,6 @@ public class TCPServer implements Closeable {
         requestHandlers.add(new FriendRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new MessageRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new FileRequestHandler(inputStream, outputStream, socket));
-        requestHandlers.add(new CallRequestHandler(inputStream, outputStream, socket));
 
         return requestHandlers;
     }
@@ -98,11 +113,11 @@ public class TCPServer implements Closeable {
 
             if (commandObject == null) {
                 System.out.println("A client exit");
-                synchronized (this.objectOutputStreamMap) {
-                    this.objectOutputStreamMap.remove(socket);
+                synchronized (objectOutputStreamMap) {
+                    objectOutputStreamMap.remove(socket);
                 }
-                synchronized (this.objectInputStreamMap) {
-                    this.objectInputStreamMap.remove(socket);
+                synchronized (objectInputStreamMap) {
+                    objectInputStreamMap.remove(socket);
                 }
                 currentUsers.remove(socket);
                 configScreen.updateOnlineList(currentUsers);
@@ -113,16 +128,15 @@ public class TCPServer implements Closeable {
 
             CommandObject finalCommandObject = commandObject;
             handlers.forEach(handler ->
-                    handler.getHandle(finalCommandObject.getCommand()).ifPresent(handlerSync ->
-                            {
-                                service.submit(() -> {
-                                    handlerSync.accept(finalCommandObject);
-                                });
-                            }
-                    )
+                    handler.getHandle(finalCommandObject.getCommand())
+                            .ifPresent(handlerSync ->
+                                    {
+                                        service.submit(() -> {
+                                            handlerSync.accept(finalCommandObject);
+                                        });
+                                    }
+                            )
             );
-
-
         }
 
     }
@@ -134,11 +148,8 @@ public class TCPServer implements Closeable {
                 object = (CommandObject) objectInputStream.readObject();
             } catch (Exception e) {
                 e.printStackTrace();
-            } finally {
-
             }
         }
-
         return object;
     }
 

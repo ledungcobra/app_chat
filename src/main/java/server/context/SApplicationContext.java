@@ -31,7 +31,7 @@ public class SApplicationContext {
     public static MessageDao messageDao;
     public static AtomicBoolean isRunning = new AtomicBoolean(false);
     public static Integer port;
-    private static TCPServer tcpServer;
+    public static TCPServer tcpServer;
     public static ServerConfigScreen configScreen;
 
 
@@ -91,7 +91,7 @@ public class SApplicationContext {
 
         try {
             isRunning.set(false);
-            sessionFactory.close();
+//            sessionFactory.close();
             currentUsers.clear();
             tcpServer.close();
 

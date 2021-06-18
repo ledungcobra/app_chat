@@ -10,6 +10,7 @@ import common.dto.CommandObject;
 import common.dto.FriendDto;
 import common.dto.FriendOfferDto;
 import lombok.val;
+import utils.ScreenStackManager;
 
 import javax.swing.*;
 import java.awt.event.WindowEvent;
@@ -142,6 +143,13 @@ public class FriendSearchScreen extends AbstractScreen implements ResponseHandle
             case S2C_SEND_ADD_FRIEND_OFFERS_TO_FRIENDS_NACK:
             {
                 runOnUiThread(() -> JOptionPane.showMessageDialog(FriendSearchScreen.this, "Sent add friend offer to your peer not accept"));
+                break;
+            }
+
+            case SERVER_STOP_SIGNAL: {
+                runOnUiThread(() -> {
+                    ScreenStackManager.getInstance().popTo(LoginScreen.class);
+                });
                 break;
             }
 

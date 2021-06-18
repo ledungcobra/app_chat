@@ -1,27 +1,25 @@
 package utils;
 
-import sun.audio.AudioPlayer;
-import sun.audio.AudioStream;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import java.io.File;
 
 public class SoundUtils {
 
     public static Runnable playSound(String filePath) {
-        AudioStream as = null;
-        try (InputStream in = new FileInputStream(filePath);) {
-            as = new AudioStream(in);
-            AudioPlayer.player.start(as);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        Clip clip = null;
+        try {
+            clip = AudioSystem.getClip();
+            clip.open(AudioSystem.getAudioInputStream(new File(filePath)));
+            clip.start();
+
+        } catch (Exception exc) {
+            exc.printStackTrace(System.out);
         }
 
-        AudioStream finalAs = as;
-        return () -> {
-            AudioPlayer.player.stop(finalAs);
-        };
+        Clip finalClip = clip;
+        return finalClip::stop;
     }
 
 }

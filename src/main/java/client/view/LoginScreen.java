@@ -11,6 +11,7 @@ import common.dto.CommandObject;
 import common.dto.UserAuthDto;
 import common.dto.UserDto;
 import lombok.val;
+import lombok.var;
 import utils.Navigator;
 import utils.PropertiesFileUtils;
 
@@ -52,9 +53,14 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
         this.loadingLbl.setVisible(false);
         this.displayNameLbl.setVisible(false);
         this.displayNameTextField.setVisible(false);
+        if(data.containsKey("USERNAME")){
+            this.userNameTextField.setText("te");
+            this.passwordTextField.setText("te");
+        }else{
+            this.userNameTextField.setText("dun");
+            this.passwordTextField.setText("dun");
+        }
 
-        this.userNameTextField.setText("dun");
-        this.passwordTextField.setText("dun");
 
 
         connectToDefaultServer(CLIENT_PROPERTIES_FILE);
@@ -192,11 +198,14 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
         uiThreadService.submit(() -> {
             try {
 
-                tcpClient.reconnect();
 
-                val success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
+              var success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
                 if (!success) {
-                    throw new Exception("Login fail because the server is offline");
+                    tcpClient.reconnect();
+                    success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
+                    if (!success) {
+                        throw new Exception("Server is offline");
+                    }
                 }
             } catch (Exception e) {
                 runOnUiThread(() -> {

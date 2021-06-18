@@ -10,29 +10,24 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 
-public abstract class AbstractScreen extends JFrame
-{
+public abstract class AbstractScreen extends JFrame {
 
-    public interface NetworkListener
-    {
+    public interface NetworkListener {
         void registerNetworkListener();
     }
 
     protected Map<String, Object> data;
 
 
-    public AbstractScreen() throws HeadlessException
-    {
+    public AbstractScreen() throws HeadlessException {
 
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setLocationRelativeTo(null);
         this.pack();
-        try
-        {
+        try {
             UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
             SwingUtilities.updateComponentTreeUI(this);
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             System.out.println("Error setting the LAF..." + e);
         }
 
@@ -40,8 +35,7 @@ public abstract class AbstractScreen extends JFrame
     }
 
     @Override
-    public void setSize(int width, int height)
-    {
+    public void setSize(int width, int height) {
 
         super.setSize(width, height);
 
@@ -55,53 +49,39 @@ public abstract class AbstractScreen extends JFrame
 
     public abstract void addEventListener();
 
-    public void setData(Map<String, Object> data)
-    {
+    public void setData(Map<String, Object> data) {
         this.data = data;
     }
 
-    public Map<String, Object> getData()
-    {
+    public Map<String, Object> getData() {
         return data;
     }
 
-    protected void finish()
-    {
+    protected void finish() {
         ScreenStackManager.getInstance().popTopScreen();
     }
 
-    protected void runOnUiThread(Runnable runnable)
-    {
-        try
-        {
+    protected void runOnUiThread(Runnable runnable) {
+        try {
             SwingUtilities.invokeAndWait(runnable);
-        } catch (InterruptedException e)
-        {
-            e.printStackTrace();
-        } catch (InvocationTargetException e)
-        {
+        } catch (InterruptedException | InvocationTargetException e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public void setVisible(boolean b)
-    {
+    public void setVisible(boolean b) {
         super.setVisible(b);
 
-        if (this instanceof NetworkListener)
-        {
-            if (b)
-            {
+        if (this instanceof NetworkListener) {
+            if (b) {
                 System.out.println("Add listener for " + this.getClass().getSimpleName());
                 ((NetworkListener) this).registerNetworkListener();
             }
         }
 
-        if (this instanceof ResponseHandler)
-        {
-            if (!b)
-            {
+        if (this instanceof ResponseHandler) {
+            if (!b) {
                 System.out.println("Close listener for" + this.getClass().getSimpleName());
                 ((ResponseHandler) this).closeHandler();
             }

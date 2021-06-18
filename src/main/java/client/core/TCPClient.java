@@ -5,10 +5,12 @@ import common.dto.CommandObject;
 import lombok.Getter;
 import utils.SocketExtension;
 
+import javax.swing.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,6 +27,7 @@ public class TCPClient implements Closeable {
     private ObjectInputStream ois;
     private String host;
     private int port;
+
 
     public TCPClient(String host, int port) {
         this.host = host;
@@ -74,6 +77,7 @@ public class TCPClient implements Closeable {
                 oos.flush();
                 return true;
             } catch (IOException e) {
+                e.printStackTrace();
                 return false;
             }
         }
@@ -82,7 +86,6 @@ public class TCPClient implements Closeable {
 
     // Run And wait
     public synchronized void listeningOnEventAsync() {
-
         System.out.println("CLIENT LISTENING");
         this.isListening.set(true);
         networkThreadService.submit(() -> {
@@ -90,21 +93,36 @@ public class TCPClient implements Closeable {
             while (isListening.get()) {
                 try {
                     CommandObject commandObject = readObjectFromInputStream();
+                    System.err.println("Catch " + commandObject);
                     for (int i = 0; i < this.handlers.size(); i++) {
                         System.out.println("Number of listener is " + handlers.size());
                         if (commandObject == null) {
                             isListening.set(false);
-                            System.out.println("STOP LISTENING");
+                            SwingUtilities.invokeAndWait(() -> {
+                                JOptionPane.showMessageDialog(null, "Stop event loop");
+                            });
                             break out;
                         }
-                        System.out.println("RECEIVED " + commandObject);
-                        System.out.println("Passs to " + handlers.get(i).getClass().getSimpleName());
+                        System.out.println("RECEIVED " + commandObject + " passs to " + handlers.get(i).getClass().getSimpleName());
                         handlers.get(i).listenOnNetworkEvent(commandObject);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    try {
+                        SwingUtilities.invokeAndWait(() -> {
+                            JOptionPane.showMessageDialog(null, "Stop event loop");
+                        });
+                    } catch (InterruptedException | InvocationTargetException interruptedException) {
+                        interruptedException.printStackTrace();
+                    }
+                    break;
                 }
+            }
 
+            synchronized (handlers) {
+                for (ResponseHandler handler : handlers) {
+                    handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
+                }
             }
         });
     }
@@ -151,7 +169,8 @@ public class TCPClient implements Closeable {
     }
 
     /**
-     *  Clear all thread
+     * Clear all thread
+     *
      * @throws IOException
      */
     public void reconnect() throws IOException {
