@@ -62,4 +62,6 @@ public class UserDao extends BaseDao<User, Long> {
             session.close();
         }
     }
+
+
 }

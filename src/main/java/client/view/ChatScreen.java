@@ -7,6 +7,7 @@ package client.view;
 
 import client.core.ResponseHandler;
 import common.dto.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -56,7 +57,11 @@ class ContainerObject {
     }
 }
 
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ChatScreen extends AbstractScreen implements ResponseHandler, NetworkListener {
+
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
 
     public static final String SEARCH_KEYWORD = "SEARCH_KEYWORD";
     public static final String SEARCH_DONE = "SEARCH_DONE";
@@ -69,6 +74,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     private UserDto userDto;
     private Map<FriendDto, ContainerObject> friendChatTabMap;
     ButtonGroup buttonGroup;
+    private DefaultListModel<GroupDto> groupDtoListModel;
 
 
     @Override
@@ -145,19 +151,26 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         });
 
         this.friendsList.addListSelectionListener(e -> addNewChatFriendChatTab(e));
-        this.callVoiceBtn.addActionListener((e) -> chatVoiceActionPerformed());
+
+        this.consoleMenuItem.addActionListener(e -> onGroupManagementActionPerformed());
+        this.leaveGroupBtn.addActionListener(e -> leaveGroupActionPerformed());
 
     }
 
-    private void chatVoiceActionPerformed() {
-        int selectedIndex = friendsList.getSelectedIndex();
-
-        if (selectedIndex == -1) {
-            JOptionPane.showMessageDialog(this, "You must select at least a friend to perform this action");
+    private void leaveGroupActionPerformed() {
+        GroupDto groupDto = groupsList.getSelectedValue();
+        if (groupDto == null) {
+            JOptionPane.showMessageDialog(this, "You must select a group to perform this action");
             return;
         }
+        tcpClient.sendRequestAsync(new CommandObject(C2S_LEAVE_GROUP, groupDto.getId()));
 
     }
+
+    private void onGroupManagementActionPerformed() {
+        new Navigator<GroupControlScreen>().navigate(getData(), false);
+    }
+
 
     private void sendFileActionPerform() {
         FriendDto currentSelectedFriend = friendsList.getSelectedValue();
@@ -386,17 +399,18 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     public void openSearchResultScreen() {
         getData().put(SEARCH_KEYWORD, searchFriend.getText());
-        if (buttonGroup.getSelection().getActionCommand().equals(USER_COMMAND)) {
-            Consumer<Set<FriendDto>> onSearchDone = this::onSearchDone;
-            getData().put(SEARCH_DONE, onSearchDone);
-        } else {
+        Consumer<Set<FriendDto>> onSearchDone = this::onSearchDone;
+        getData().put(SEARCH_DONE, onSearchDone);
 
+        if (buttonGroup.getSelection().getActionCommand().equals(USER_COMMAND)) {
+            new Navigator<FriendSearchScreen>().navigate(getData(), false);
+        } else {
+            new Navigator<GroupSearchScreen>().navigate(getData(), false);
         }
 
-        new Navigator<FriendSearchScreen>().navigate(getData(), false);
     }
 
-    private void onSearchDone(Set<FriendDto> friendDtoList) {
+    private <T> void onSearchDone(Set<T> result) {
         getData().remove(SEARCH_DONE);
         getData().remove(SEARCH_KEYWORD);
     }
@@ -405,16 +419,32 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     public void listenOnNetworkEvent(CommandObject commandObject) {
         Command command = commandObject.getCommand();
         switch (command) {
+
+            case S2C_GET_GROUP_LIST_ACK: {
+                List<GroupDto> groupDtoList = (List<GroupDto>) commandObject.getPayload();
+                runOnUiThread(() -> updateGroupToList(groupDtoList));
+                break;
+            }
+
+
+            case S2C_LEAVE_GROUP_ACK: {
+                Long groupId = (Long) commandObject.getPayload();
+                runOnUiThread(() -> removeAGroup(groupId));
+                break;
+            }
+
+            case S2C_NEW_ACCEPTED_GROUP: {
+                GroupDto groupDto = (GroupDto) commandObject.getPayload();
+                runOnUiThread(() -> {
+                    addNewGroup(groupDto);
+                });
+                break;
+            }
+
             // DONE
             case S2C_GET_FRIEND_LIST_ACK: {
                 List<FriendDto> friendDtoList = (List<FriendDto>) commandObject.getPayload();
                 runOnUiThread(() -> updateFriendList(friendDtoList));
-                break;
-            }
-            // DONE
-            case S2C_GET_GROUP_LIST_ACK: {
-                List<GroupDto> groupDtos = (List<GroupDto>) commandObject.getPayload();
-                runOnUiThread(() -> updateGroupList(groupDtos));
                 break;
             }
             // DONE
@@ -497,6 +527,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 break;
             }
 
+            case S2C_LEAVE_GROUP_NACK:
             case S2S_SEND_PRIVATE_FILE_ACK:
             case S2S_SEND_PRIVATE_FILE_NACK:
             case S2C_GET_PRIVATE_MESSAGES_NACK:
@@ -511,6 +542,28 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 break;
         }
 
+    }
+
+    private void removeAGroup(Long groupId) {
+        if (groupDtoListModel == null) return;
+        for (int i = 0; i < groupDtoListModel.size(); i++) {
+            if (groupDtoListModel.get(i).getId().equals(groupId)) {
+                groupDtoListModel.remove(i);
+                break;
+            }
+        }
+    }
+
+    private void addNewGroup(GroupDto groupDto) {
+        if (groupDtoListModel != null) {
+            groupDtoListModel.addElement(groupDto);
+        }
+    }
+
+    private void updateGroupToList(List<GroupDto> groupDtoList) {
+        groupDtoListModel = new DefaultListModel<GroupDto>();
+        groupDtoList.forEach(groupDtoListModel::addElement);
+        groupsList.setModel(groupDtoListModel);
     }
 
 
@@ -645,11 +698,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         friendOfferListModel.addElement(friendOfferDto);
     }
 
-    private void updateGroupList(List<GroupDto> groupDtos) {
-        val model = new DefaultListModel<GroupDto>();
-        groupDtos.forEach(model::addElement);
-        this.groupsList.setModel(model);
-    }
 
     private void updateFriendList(List<FriendDto> friendDtoList) {
         this.friendListModel = new DefaultListModel<FriendDto>();
@@ -693,16 +741,16 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         jScrollPane2 = new javax.swing.JScrollPane();
         friendOfferJList = new javax.swing.JList<>();
         jPanel4 = new javax.swing.JPanel();
-        removeGroupBtn = new javax.swing.JButton();
+        leaveGroupBtn = new javax.swing.JButton();
         jScrollPane3 = new javax.swing.JScrollPane();
         groupsList = new javax.swing.JList<>();
         jPanel5 = new javax.swing.JPanel();
         unfriendBtn = new javax.swing.JButton();
         jScrollPane4 = new javax.swing.JScrollPane();
         friendsList = new javax.swing.JList<>();
-        callVoiceBtn = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu3 = new javax.swing.JMenu();
+        consoleMenuItem = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -840,9 +888,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         jPanel4.setBorder(javax.swing.BorderFactory.createTitledBorder("Group"));
 
-        removeGroupBtn.setBackground(new java.awt.Color(255, 51, 0));
-        removeGroupBtn.setForeground(new java.awt.Color(255, 51, 51));
-        removeGroupBtn.setText("Leave");
+        leaveGroupBtn.setBackground(new java.awt.Color(255, 51, 0));
+        leaveGroupBtn.setForeground(new java.awt.Color(255, 51, 51));
+        leaveGroupBtn.setText("Leave");
 
         jScrollPane3.setViewportView(groupsList);
 
@@ -853,14 +901,14 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                         .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
                                 .addContainerGap()
                                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                        .addComponent(removeGroupBtn)
+                                        .addComponent(leaveGroupBtn)
                                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 191, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
                 jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(jPanel4Layout.createSequentialGroup()
-                                .addComponent(removeGroupBtn)
+                                .addComponent(leaveGroupBtn)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 216, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap())
@@ -874,19 +922,15 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         jScrollPane4.setViewportView(friendsList);
 
-        callVoiceBtn.setText("Call voice");
-
         javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
         jPanel5.setLayout(jPanel5Layout);
         jPanel5Layout.setHorizontalGroup(
                 jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(jPanel5Layout.createSequentialGroup()
-                                .addContainerGap()
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                         .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 185, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                                .addComponent(unfriendBtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(callVoiceBtn, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                        .addComponent(unfriendBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addContainerGap())
         );
         jPanel5Layout.setVerticalGroup(
@@ -894,13 +938,15 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                         .addGroup(jPanel5Layout.createSequentialGroup()
                                 .addComponent(unfriendBtn)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(callVoiceBtn)
-                                .addGap(13, 13, 13)
                                 .addComponent(jScrollPane4)
                                 .addContainerGap())
         );
 
         jMenu3.setText("Group management");
+
+        consoleMenuItem.setText("Console");
+        jMenu3.add(consoleMenuItem);
+
         jMenuBar1.add(jMenu3);
 
         jMenu2.setText("Logout");
@@ -981,9 +1027,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton acceptFriendBtn;
-    private javax.swing.JButton callVoiceBtn;
     private javax.swing.JTextArea chatInput;
     private javax.swing.JTabbedPane chatTabs;
+    private javax.swing.JMenuItem consoleMenuItem;
     private javax.swing.JLabel displayNameLbl;
     private javax.swing.JCheckBox enterToSubmitCheck;
     private javax.swing.JList<FriendOfferDto> friendOfferJList;
@@ -1006,8 +1052,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane6;
+    private javax.swing.JButton leaveGroupBtn;
     private javax.swing.JButton logoutBtn;
-    private javax.swing.JButton removeGroupBtn;
     private javax.swing.JButton searchBtn;
     private javax.swing.JTextField searchFriend;
     private javax.swing.JButton sendBtn;

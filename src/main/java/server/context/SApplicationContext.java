@@ -28,6 +28,8 @@ public class SApplicationContext {
     public static FriendOfferDao friendOfferDao;
     public static FriendshipDao friendshipDao;
     public static MessageDao messageDao;
+    public static GroupDao groupDao;
+
     public static AtomicBoolean isRunning = new AtomicBoolean(false);
     public static Integer port;
     public static TCPServer tcpServer;
@@ -45,6 +47,7 @@ public class SApplicationContext {
         friendOfferDao = new FriendOfferDao(sessionFactory);
         friendshipDao = new FriendshipDao(sessionFactory);
         messageDao = new MessageDao(sessionFactory);
+        groupDao = new GroupDao(sessionFactory);
 
         userService = new UserService();
         currentUsers = new ConcurrentHashMap<>();

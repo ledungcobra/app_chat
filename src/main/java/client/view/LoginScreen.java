@@ -10,6 +10,7 @@ import common.dto.Command;
 import common.dto.CommandObject;
 import common.dto.UserAuthDto;
 import common.dto.UserDto;
+import lombok.EqualsAndHashCode;
 import lombok.val;
 import lombok.var;
 import utils.Navigator;
@@ -32,7 +33,12 @@ import static utils.FileHelper.writeObjectToFileAsync;
 /**
  * @author ledun
  */
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class LoginScreen extends AbstractScreen implements ResponseHandler, AbstractScreen.NetworkListener {
+
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
 
     public static final String AUTH_TXT = "AUTH.txt";
     public static final String USER = "USER";

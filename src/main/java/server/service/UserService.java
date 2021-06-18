@@ -1,10 +1,9 @@
 package server.service;
 
+import common.dto.UserPendingDto;
 import server.context.SApplicationContext;
 import server.dao.UserDao;
-import server.entities.FriendOffer;
-import server.entities.PrivateMessage;
-import server.entities.User;
+import server.entities.*;
 
 import java.util.List;
 import java.util.Set;
@@ -98,21 +97,83 @@ public class UserService extends BaseService<User, Long> {
     public Future<List<User>> getFriends(Long id) {
         return service.submit(() ->
                 doTransaction2(
-                        () -> ((UserDao)userDao).getFriends(id)
+                        () -> ((UserDao) userDao).getFriends(id)
                 )
         );
     }
 
 
-    public Future<List<PrivateMessage>> getPrivateMessage(Long userId, Long friendId, int numberOfMessages,int offset) {
+    public Future<List<PrivateMessage>> getPrivateMessage(Long userId, Long friendId, int numberOfMessages, int offset) {
         return service.submit(() ->
                 doTransaction2(() ->
-                        messageDao.getMessageByUserId(userId,  friendId, numberOfMessages, offset)));
+                        messageDao.getMessageByUserId(userId, friendId, numberOfMessages, offset)));
     }
 
     public Future<PrivateMessage> addMessageAsync(Long senderId, Long receiverId, String content, Long previousMessageId) {
         return service.submit(() -> {
             return doTransaction2(() -> messageDao.addNewMessage(senderId, receiverId, content, previousMessageId));
         });
+    }
+
+    public void joinGroup(Long userId, Long groupId) {
+        service.submit(() -> {
+            groupDao.insertAPending(userId, groupId);
+        });
+    }
+
+    public List<Group> findGroupByKeyword(String keyword) {
+        return groupDao.findGroupByKeyword(keyword);
+    }
+
+    public void leaveGroup(Long groupId, Long userId) {
+        groupDao.removeMember(userId, groupId);
+    }
+
+    public void addMemberToGroup(Long memberId, Long groupId) {
+        groupDao.addMemberToGroup(memberId, groupId);
+    }
+
+    public List<User> getAllMembers(Long groupId) {
+        return groupDao.getAllMember(groupId);
+    }
+
+    public Group createNewGroup(String groupName, Long authorId) {
+        return groupDao.createNewGroup(authorId, groupName);
+    }
+
+    public Object[] acceptAMember(Long pendingId) {
+        return groupDao.acceptAPending(pendingId);
+    }
+
+    public void addAdmin(Long adminId, Long groupId) {
+        groupDao.addAdmin(adminId, groupId);
+    }
+
+    public boolean isAdmin(Long userId, Long groupId) {
+        return groupDao.isAdmin(userId, groupId);
+    }
+
+    public void removeAdmin(Long userId, Long groupId) {
+        groupDao.removeAdmin(userId, groupId);
+    }
+
+    public List<GroupMessage> getMessages(Long groupId, Long numberOfMessages) {
+        return messageDao.getAllMessage(groupId, numberOfMessages);
+    }
+
+    public GroupMessage addGroupMessage(GroupMessage message, Long previousMessageId) {
+        return messageDao.addNewMessageToGroup(message.getSender().getId(), message.getGroupReceiver().getId(), message.getContent(), previousMessageId);
+    }
+
+    public List<UserPendingDto> getPendingList(Long groupId) {
+        return groupDao.getPendingList(groupId);
+    }
+
+    public void removePending(Long pendingId) {
+        groupDao.removePending(pendingId);
+    }
+
+    public List<Group> getGroupListByUserId(Long userId) {
+        return groupDao.findGroupByUserId(userId);
     }
 }

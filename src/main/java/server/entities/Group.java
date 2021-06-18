@@ -17,6 +17,7 @@ import java.util.List;
 public class Group extends BaseEntity {
     @Id
     @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
 
@@ -31,5 +32,11 @@ public class Group extends BaseEntity {
             joinColumns = @JoinColumn(name = "GROUP_ID"),
             inverseJoinColumns = @JoinColumn(name = "USER_ID"))
     private List<User> admins = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(name = "USER_GROUP_PENDING",
+            joinColumns = @JoinColumn(name = "GROUP_ID"),
+            inverseJoinColumns = @JoinColumn(name = "USER_ID"))
+    private List<User> pendingUsers  = new ArrayList<>();
 
 }

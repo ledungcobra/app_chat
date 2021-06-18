@@ -9,6 +9,7 @@ import client.core.ResponseHandler;
 import common.dto.CommandObject;
 import common.dto.FriendDto;
 import common.dto.FriendOfferDto;
+import lombok.EqualsAndHashCode;
 import lombok.val;
 import utils.ScreenStackManager;
 
@@ -26,9 +27,13 @@ import static common.dto.Command.*;
 /**
  * @author ledun
  */
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class FriendSearchScreen extends AbstractScreen implements ResponseHandler, AbstractScreen.NetworkListener
 {
 
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
 
     public static final String LIST_FRIEND_RESULT = "LIST_FRIEND_RESULT";
     private Set<FriendDto> selectedFriend = new HashSet<>();

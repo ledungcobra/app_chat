@@ -28,14 +28,17 @@ public class GetListRequestHandler extends RequestHandler {
     @Override
     public Optional<Consumer<CommandObject>> getHandle(Command command) {
 
-        if (command.equals(Command.C2S_GET_FRIEND_LIST)) {
-            return Optional.of(this::getFriendListByUserId);
-        } else if (command.equals(Command.C2S_GET_GROUP_LIST)) {
-            return Optional.of(this::getGroupListByUserId);
-        } else if (C2S_FIND_FRIEND_BY_KEYWORD.equals(command)) {
-            return Optional.of(this::getListUserByKeyword);
-        } else if (command.equals(C2S_GET_UNSEEN_FRIEND_OFFERS)) {
-            return Optional.of(this::getUnSeenFriendOffers);
+        switch (command) {
+            case C2S_GET_FRIEND_LIST:
+                return Optional.of(this::getFriendListByUserId);
+            case C2S_GET_GROUP_LIST:
+                return Optional.of(this::getGroupListByUserId);
+            case C2S_FIND_FRIEND_BY_KEYWORD:
+                return Optional.of(this::getListUserByKeyword);
+            case C2S_GET_UNSEEN_FRIEND_OFFERS:
+                return Optional.of(this::getUnSeenFriendOffers);
+            case C2S_GET_PENDING_USER_GROUP_LIST:
+                return Optional.of(this::getListPending);
         }
 
         return Optional.empty();
@@ -70,18 +73,26 @@ public class GetListRequestHandler extends RequestHandler {
 
     }
 
+    /**
+     * @param commandObject
+     */
     private void getGroupListByUserId(CommandObject commandObject) {
-        User user = (User) userService.findById((Long) commandObject.getPayload());
+        try {
+            User user = getCurrentUser();
 
-        if (user == null) {
-            sendResponse(new CommandObject(Command.S2C_USER_NOT_FOUND));
-            return;
+            if (user == null) {
+                sendResponse(new CommandObject(Command.S2C_USER_NOT_FOUND));
+                return;
+            }
+
+            List<GroupDto> groups = userService.getGroupListByUserId(user.getId())
+                    .stream().map(g -> Mapper2.map(g, GroupDto.class)).collect(Collectors.toList());
+            sendResponse(new CommandObject(Command.S2C_GET_GROUP_LIST_ACK, groups));
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            sendResponse(new CommandObject(Command.S2C_GET_GROUP_LIST_NACK, exception.getMessage()));
+
         }
-
-        val groupDtos = user.getGroups()
-                .stream()
-                .map(g -> Mapper.<Group, GroupDto>map(g)).collect(Collectors.toList());
-        sendResponse(new CommandObject(Command.S2C_GET_GROUP_LIST_ACK, groupDtos));
 
     }
 
@@ -124,5 +135,27 @@ public class GetListRequestHandler extends RequestHandler {
             e.printStackTrace();
         }
 
+    }
+
+    /**
+     * payload is group id
+     * <p>
+     * List<UserPendingDto>
+     *
+     * @param commandObject
+     */
+    private void getListPending(CommandObject commandObject) {
+        try {
+            Long groupId = (Long) commandObject.getPayload();
+            if (groupId == null) {
+                sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_NACK, "Invalid payload"));
+                return;
+            }
+            List<UserPendingDto> userPendingDtos = userService.getPendingList(groupId);
+            sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_ACK, userPendingDtos));
+        } catch (Exception exception) {
+            sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_NACK, exception.getMessage()));
+            exception.printStackTrace();
+        }
     }
 }

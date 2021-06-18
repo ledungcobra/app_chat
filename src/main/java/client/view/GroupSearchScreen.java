@@ -8,7 +8,9 @@ package client.view;
 import client.core.ResponseHandler;
 import common.dto.CommandObject;
 import common.dto.GroupDto;
+import lombok.EqualsAndHashCode;
 import lombok.val;
+import server.entities.Group;
 import utils.ScreenStackManager;
 
 import javax.swing.*;
@@ -18,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static client.context.CApplicationContext.tcpClient;
 import static client.view.ChatScreen.*;
@@ -26,8 +29,13 @@ import static common.dto.Command.*;
 /**
  * @author ledun
  */
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class GroupSearchScreen extends AbstractScreen implements ResponseHandler, NetworkListener {
 
+
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
 
     private Set<GroupDto> selectedGroups = new HashSet<>();
     private List<GroupDto> loadedGroupDtos = new ArrayList<>();
@@ -41,7 +49,7 @@ public class GroupSearchScreen extends AbstractScreen implements ResponseHandler
     @Override
     public void addEventListener() {
         this.joinGroupBtn.addActionListener(e -> onJoinGroupActionPerformed());
-//        Consumer<Set<FriendDto>> onSearchDone = (Consumer<Set<FriendDto>>) getData().get(SEARCH_DONE);
+        Consumer<Set<Object>> onSearchDone = (Consumer<Set<Object>>) getData().get(SEARCH_DONE);
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -55,7 +63,7 @@ public class GroupSearchScreen extends AbstractScreen implements ResponseHandler
 
             @Override
             public void windowClosed(WindowEvent e) {
-//                onSearchDone.accept(GroupSearchScreen.this.selectedGroups);
+                onSearchDone.accept(null);
                 GroupSearchScreen.this.closeHandler();
             }
 
@@ -121,6 +129,7 @@ public class GroupSearchScreen extends AbstractScreen implements ResponseHandler
                 runOnUiThread(() -> {
                     JOptionPane.showMessageDialog(this, "Send an invitation to group " + commandObject.getPayload() + " success");
                 });
+                break;
             }
 
             case S2C_SEND_JOIN_GROUPS_NACK:

@@ -12,8 +12,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class GroupMessageDto implements Serializable
-{
+public class GroupMessageDto implements Serializable {
 
     @Id
     @EqualsAndHashCode.Include
@@ -25,9 +24,10 @@ public class GroupMessageDto implements Serializable
 
     private GroupDto groupReceiver;
 
+    private GroupMessageDto nextMessage;
+
     @Override
-    public String toString()
-    {
+    public String toString() {
         return this.sender + ": " + this.content;
     }
 }

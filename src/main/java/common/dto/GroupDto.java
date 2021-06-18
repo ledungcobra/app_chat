@@ -21,4 +21,11 @@ public class GroupDto implements Serializable {
     public String toString() {
         return name;
     }
+
+    public GroupDto() {
+    }
+
+    public GroupDto(String name) {
+        this.name = name;
+    }
 }

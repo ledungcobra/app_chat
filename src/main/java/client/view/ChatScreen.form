@@ -8,6 +8,13 @@
           <Properties>
             <Property name="text" type="java.lang.String" value="Group management"/>
           </Properties>
+          <SubComponents>
+            <MenuItem class="javax.swing.JMenuItem" name="consoleMenuItem">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Console"/>
+              </Properties>
+            </MenuItem>
+          </SubComponents>
         </Menu>
         <Menu class="javax.swing.JMenu" name="jMenu2">
           <Properties>
@@ -380,7 +387,7 @@
               <Group type="102" alignment="1" attributes="0">
                   <EmptySpace max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="1" attributes="0">
-                      <Component id="removeGroupBtn" min="-2" max="-2" attributes="0"/>
+                      <Component id="leaveGroupBtn" min="-2" max="-2" attributes="0"/>
                       <Component id="jScrollPane3" min="-2" pref="191" max="-2" attributes="0"/>
                   </Group>
                   <EmptySpace min="-2" max="-2" attributes="0"/>
@@ -390,7 +397,7 @@
         <DimensionLayout dim="1">
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" attributes="0">
-                  <Component id="removeGroupBtn" min="-2" max="-2" attributes="0"/>
+                  <Component id="leaveGroupBtn" min="-2" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
                   <Component id="jScrollPane3" min="-2" pref="216" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
@@ -399,7 +406,7 @@
         </DimensionLayout>
       </Layout>
       <SubComponents>
-        <Component class="javax.swing.JButton" name="removeGroupBtn">
+        <Component class="javax.swing.JButton" name="leaveGroupBtn">
           <Properties>
             <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="0" green="33" red="ff" type="rgb"/>
@@ -440,13 +447,10 @@
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
               <Group type="102" attributes="0">
-                  <EmptySpace max="-2" attributes="0"/>
+                  <EmptySpace max="32767" attributes="0"/>
                   <Group type="103" groupAlignment="1" attributes="0">
                       <Component id="jScrollPane4" min="-2" pref="185" max="-2" attributes="0"/>
-                      <Group type="103" alignment="1" groupAlignment="0" max="-2" attributes="0">
-                          <Component id="unfriendBtn" alignment="1" max="32767" attributes="0"/>
-                          <Component id="callVoiceBtn" alignment="1" max="32767" attributes="0"/>
-                      </Group>
+                      <Component id="unfriendBtn" alignment="1" min="-2" pref="87" max="-2" attributes="0"/>
                   </Group>
                   <EmptySpace max="-2" attributes="0"/>
               </Group>
@@ -457,8 +461,6 @@
               <Group type="102" attributes="0">
                   <Component id="unfriendBtn" min="-2" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
-                  <Component id="callVoiceBtn" min="-2" max="-2" attributes="0"/>
-                  <EmptySpace min="-2" pref="13" max="-2" attributes="0"/>
                   <Component id="jScrollPane4" max="32767" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
               </Group>
@@ -491,11 +493,6 @@
             </Component>
           </SubComponents>
         </Container>
-        <Component class="javax.swing.JButton" name="callVoiceBtn">
-          <Properties>
-            <Property name="text" type="java.lang.String" value="Call voice"/>
-          </Properties>
-        </Component>
       </SubComponents>
     </Container>
   </SubComponents>

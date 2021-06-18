@@ -18,7 +18,7 @@ import static client.context.CApplicationContext.*;
 public class TCPClient implements Closeable {
 
     private Socket socket;
-    private final CopyOnWriteArrayList<ResponseHandler> handlers;
+    private final CopyOnWriteArraySet<ResponseHandler> handlers;
     private AtomicBoolean isListening = new AtomicBoolean(false);
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
@@ -29,7 +29,7 @@ public class TCPClient implements Closeable {
     public TCPClient(String host, int port) {
         this.host = host;
         this.port = port;
-        handlers = new CopyOnWriteArrayList<>();
+        handlers = new CopyOnWriteArraySet<>();
     }
 
 
@@ -91,7 +91,20 @@ public class TCPClient implements Closeable {
                 try {
                     CommandObject commandObject = readObjectFromInputStream();
                     System.err.println("Catch " + commandObject);
-                    for (int i = 0; i < this.handlers.size(); i++) {
+//                    for (int i = 0; i < this.handlers.size(); i++) {
+//                        System.out.println("Number of listener is " + handlers.size());
+//                        if (commandObject == null) {
+//                            isListening.set(false);
+//                            SwingUtilities.invokeAndWait(() -> {
+//                                JOptionPane.showMessageDialog(null, "Stop event loop");
+//                            });
+//                            break out;
+//                        }
+//                        System.out.println("RECEIVED " + commandObject + " passs to " + handlers.get(i).getClass().getSimpleName());
+//                        handlers.get(i).listenOnNetworkEvent(commandObject);
+//                    }
+
+                    for (ResponseHandler handler : handlers) {
                         System.out.println("Number of listener is " + handlers.size());
                         if (commandObject == null) {
                             isListening.set(false);
@@ -100,9 +113,10 @@ public class TCPClient implements Closeable {
                             });
                             break out;
                         }
-                        System.out.println("RECEIVED " + commandObject + " passs to " + handlers.get(i).getClass().getSimpleName());
-                        handlers.get(i).listenOnNetworkEvent(commandObject);
+                        System.out.println("RECEIVED " + commandObject + " passs to " + handler.getClass().getSimpleName());
+                        handler.listenOnNetworkEvent(commandObject);
                     }
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     try {
@@ -111,7 +125,7 @@ public class TCPClient implements Closeable {
                         });
                     } catch (InterruptedException | InvocationTargetException interruptedException) {
                         interruptedException.printStackTrace();
-                    }finally {
+                    } finally {
                         synchronized (handlers) {
                             for (ResponseHandler handler : handlers) {
                                 handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));

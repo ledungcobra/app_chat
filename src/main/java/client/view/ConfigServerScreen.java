@@ -6,6 +6,7 @@
 package client.view;
 
 import client.context.CApplicationContext;
+import lombok.EqualsAndHashCode;
 import utils.PropertiesFileUtils;
 import utils.ScreenStackManager;
 import utils.UIUtils;
@@ -25,9 +26,12 @@ import static utils.PropertiesFileUtils.*;
 /**
  * @author ledun
  */
+
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ConfigServerScreen extends AbstractScreen {
 
-
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
     private List<String> servers = new ArrayList<>();
     private DefaultComboBoxModel<String> model;
     private String defaultServer;

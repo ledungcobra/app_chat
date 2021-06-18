@@ -5,14 +5,18 @@
  */
 package client.view;
 
+import lombok.EqualsAndHashCode;
+
 /**
  *
  * @author ledun
  */
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class GroupChatScreen extends AbstractScreen
 {
 
-
+    @EqualsAndHashCode.Include
+    public String screenName = getClass().getSimpleName();
 
     @Override
     public void onCreateView()

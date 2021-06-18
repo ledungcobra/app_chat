@@ -1,6 +1,7 @@
 package client.view;
 
 import client.core.ResponseHandler;
+import lombok.EqualsAndHashCode;
 import lombok.val;
 import utils.ScreenStackManager;
 
@@ -8,9 +9,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.Objects;
 
-
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public abstract class AbstractScreen extends JFrame {
+
+    @EqualsAndHashCode.Include
+    protected  String screenName;
 
     public interface NetworkListener {
         void registerNetworkListener();
@@ -87,4 +92,6 @@ public abstract class AbstractScreen extends JFrame {
             }
         }
     }
+
+
 }

@@ -18,7 +18,6 @@ import static server.context.SApplicationContext.*;
 import static utils.Constants.INITIALIZING_BEFORE_MSG;
 
 @Log4j(topic = "LOG")
-
 public class TCPServer implements Closeable {
     private ServerSocket socket;
     public static final Map<Socket, ObjectInputStream> objectInputStreamMap;
@@ -101,6 +100,7 @@ public class TCPServer implements Closeable {
         requestHandlers.add(new FriendRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new MessageRequestHandler(inputStream, outputStream, socket));
         requestHandlers.add(new FileRequestHandler(inputStream, outputStream, socket));
+        requestHandlers.add(new GroupRequestHandler(inputStream, outputStream, socket));
 
         return requestHandlers;
     }

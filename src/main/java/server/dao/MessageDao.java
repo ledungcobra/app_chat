@@ -51,8 +51,8 @@ public class MessageDao extends BaseDao<PrivateMessage, Long> {
         Session session = null;
         try {
             String query1 = "INSERT INTO " +
-                    "PRIVATE_MESSAGE (CREATED_AT, UPDATED_AT, CONTENT, IS_SEEN_BY_RECEIVER, SENDER_ID, RECEIVER_ID, NEXT_ID)" +
-                    " values(curdate(), curdate() , ?1 ,0, ?2 , ?3 , null ) ";
+                    "PRIVATE_MESSAGE (CREATED_AT, UPDATED_AT, CONTENT,  SENDER_ID, RECEIVER_ID, NEXT_ID)" +
+                    " values(curdate(), curdate() , ?1 , ?2 , ?3 , null ) ";
             session = openSession();
             session.beginTransaction();
             session.createNativeQuery(query1)
@@ -77,20 +77,22 @@ public class MessageDao extends BaseDao<PrivateMessage, Long> {
     public List<GroupMessage> getAllMessage(Long groupId, Long maxMessages) {
         Session session = null;
         try {
-            session = openSession();
-            return session.createNativeQuery(" with RECURSIVE CTE " +
+            String query = " with RECURSIVE CTE " +
                     " as " +
                     " (SELECT gm.id, gm.CONTENT, gm.SENDER_ID, gm.GROUP_ID, gm.CREATED_AT, gm.UPDATED_AT, " +
                     " gm.NEXT_ID,1 level  " +
                     "  FROM GROUP_MESSAGE gm  " +
-                    " where ?1 = gm.GROUP_IDand gm.NEXT_ID is null  " +
+                    " where ?1 = gm.GROUP_ID and gm.NEXT_ID is null  " +
                     " union all  " +
                     " SELECT gm.id, gm.CONTENT, gm.SENDER_ID, gm.GROUP_ID, gm.CREATED_AT, gm.UPDATED_AT,gm.NEXT_ID,c.level + 1  " +
                     " FROM GROUP_MESSAGE gm  join CTE c on gm.NEXT_ID = c.id  " +
                     " where ?1 = gm.GROUP_ID   and c.level < ?2 ) " +
                     " select gm.id, gm.CONTENT, gm.SENDER_ID, gm.GROUP_ID, gm.CREATED_AT, gm.UPDATED_AT, gm.NEXT_ID " +
                     " from CTE gm  " +
-                    " order by id asc; ", GroupMessage.class)
+                    " order by id asc; ";
+            System.out.println(query);
+            session = openSession();
+            return session.createNativeQuery(query, GroupMessage.class)
                     .setParameter(1, groupId)
                     .setParameter(2, maxMessages)
                     .getResultList();
