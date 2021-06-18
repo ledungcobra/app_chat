@@ -6,10 +6,7 @@ import lombok.Getter;
 import utils.SocketExtension;
 
 import javax.swing.*;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Socket;
 import java.util.concurrent.*;
@@ -77,7 +74,7 @@ public class TCPClient implements Closeable {
                 oos.flush();
                 return true;
             } catch (IOException e) {
-                e.printStackTrace();
+                System.err.println("WRITE ERROR");
                 return false;
             }
         }
@@ -114,14 +111,14 @@ public class TCPClient implements Closeable {
                         });
                     } catch (InterruptedException | InvocationTargetException interruptedException) {
                         interruptedException.printStackTrace();
+                    }finally {
+                        synchronized (handlers) {
+                            for (ResponseHandler handler : handlers) {
+                                handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
+                            }
+                        }
                     }
                     break;
-                }
-            }
-
-            synchronized (handlers) {
-                for (ResponseHandler handler : handlers) {
-                    handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
                 }
             }
         });
@@ -132,8 +129,12 @@ public class TCPClient implements Closeable {
         synchronized (ois) {
             try {
                 object = (CommandObject) ois.readObject();
-            } catch (Exception e) {
+            } catch (EOFException e) {
                 object = null;
+                System.err.println("EOF");
+                e.printStackTrace();
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("CLOSE");
                 e.printStackTrace();
             }
         }
@@ -152,7 +153,13 @@ public class TCPClient implements Closeable {
     }
 
     public Boolean stillAlive() {
-        return this.sendRequest(new CommandObject(Command.C2S_PING));
+        try {
+            if (socket == null) return false;
+            return socket.getInetAddress().isReachable(300);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 

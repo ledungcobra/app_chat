@@ -92,7 +92,6 @@ public class SApplicationContext {
         try {
             isRunning.set(false);
 //            sessionFactory.close();
-            currentUsers.clear();
             tcpServer.close();
 
             service.submit(() -> {

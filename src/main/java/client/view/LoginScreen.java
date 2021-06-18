@@ -53,14 +53,13 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
         this.loadingLbl.setVisible(false);
         this.displayNameLbl.setVisible(false);
         this.displayNameTextField.setVisible(false);
-        if(data.containsKey("USERNAME")){
+        if (data.containsKey("USERNAME")) {
             this.userNameTextField.setText("te");
             this.passwordTextField.setText("te");
-        }else{
+        } else {
             this.userNameTextField.setText("dun");
             this.passwordTextField.setText("dun");
         }
-
 
 
         connectToDefaultServer(CLIENT_PROPERTIES_FILE);
@@ -157,11 +156,8 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
             try {
                 if (!tcpClient.stillAlive()) {
-                    System.out.println("Reconnect sync");
-                    tcpClient.connect();
-                    System.out.println("Reconnect success");
+                    tcpClient.reconnect();
                 }
-
                 try {
                     tcpClient.sendRequestAsync(new CommandObject(Command.C2S_REGISTER, user));
                 } catch (Exception e) {
@@ -197,9 +193,10 @@ public class LoginScreen extends AbstractScreen implements ResponseHandler, Abst
 
         uiThreadService.submit(() -> {
             try {
-
-
-              var success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
+                if (!tcpClient.stillAlive()) {
+                    tcpClient.reconnect();
+                }
+                var success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));
                 if (!success) {
                     tcpClient.reconnect();
                     success = tcpClient.sendRequest(new CommandObject(Command.C2S_LOGIN, user));

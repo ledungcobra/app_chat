@@ -23,10 +23,12 @@ public class TCPServer implements Closeable {
     private ServerSocket socket;
     public static final Map<Socket, ObjectInputStream> objectInputStreamMap;
     public static final Map<Socket, ObjectOutputStream> objectOutputStreamMap;
+    public static final Set<Socket> sockets;
 
     static {
         objectInputStreamMap = new HashMap<>();
         objectOutputStreamMap = new HashMap<>();
+        sockets = new HashSet<>();
     }
 
     public void addSocketToMap(Socket socket) {
@@ -42,6 +44,8 @@ public class TCPServer implements Closeable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        sockets.add(socket);
 
     }
 
@@ -155,10 +159,13 @@ public class TCPServer implements Closeable {
 
     @Override
     public void close() throws IOException {
-        for (val entry : currentUsers.entrySet()) {
-            entry.getKey().close();
+        for (val s : sockets) {
+            s.close();
         }
         this.socket.close();
+        sockets.clear();
+        currentUsers.clear();
+
     }
 
 }
