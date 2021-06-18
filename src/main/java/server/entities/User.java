@@ -41,15 +41,6 @@ public class User extends BaseEntity
             inverseJoinColumns = @JoinColumn(name = "USER_ID"))
     private List<Group> groups;
 
-    // Notification sent to another people
-    @OneToMany(mappedBy = "fromUser", cascade = {CascadeType.ALL})
-    private List<Notification> sentNotifications;
-
-    // Notification receive from another people
-    @OneToMany(mappedBy = "receiveUser", cascade = {CascadeType.ALL})
-    private List<Notification> receiveNotifications;
-
-
     @OneToMany(mappedBy = "owner", cascade = {CascadeType.ALL})
     private Set<FriendShip> friendships;
 
@@ -59,19 +50,6 @@ public class User extends BaseEntity
         return groups;
     }
 
-    public void addFriendship(Collection<FriendShip> friendships)
-    {
-        this.friendships.addAll(friendships);
-        friendships.forEach(f -> {
-            f.setOwner(this);
-        });
-    }
-
-    public void sendAnNotification(Notification notification)
-    {
-        notification.setFromUser(this);
-        notification.setIsSeen(false);
-    }
 
     @Override
     public String toString()

@@ -27,7 +27,6 @@ public class SApplicationContext {
     public static ConcurrentMap<Socket, User> currentUsers;
     public static FriendOfferDao friendOfferDao;
     public static FriendshipDao friendshipDao;
-    public static NotificationDao notificationDao;
     public static MessageDao messageDao;
     public static AtomicBoolean isRunning = new AtomicBoolean(false);
     public static Integer port;
@@ -45,7 +44,6 @@ public class SApplicationContext {
         userDao = new UserDao(sessionFactory);
         friendOfferDao = new FriendOfferDao(sessionFactory);
         friendshipDao = new FriendshipDao(sessionFactory);
-        notificationDao = new NotificationDao(sessionFactory);
         messageDao = new MessageDao(sessionFactory);
 
         userService = new UserService();

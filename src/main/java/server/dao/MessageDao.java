@@ -17,19 +17,19 @@ public class MessageDao extends BaseDao<PrivateMessage, Long> {
     public List<PrivateMessage> getMessageByUserId(Long userId, Long friendId, int numberOfMessages, int offset) {
         Session session = null;
         try {
-            String query = "with RECURSIVE CTE as (SELECT pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT, pm.IS_SEEN_BY_RECEIVER, pm.UPDATED_AT, pm.NEXT_ID,1 level " +
+            String query = "with RECURSIVE CTE as (SELECT pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT, pm.UPDATED_AT, pm.NEXT_ID,1 level " +
                     "                       FROM private_message pm " +
                     "                       where ?1 in (pm.RECEIVER_ID, pm.SENDER_ID) and ?2 in (pm.RECEIVER_ID, pm.SENDER_ID)  " +
                     "                         and pm.NEXT_ID is null " +
                     "" +
                     "                       union all " +
                     "" +
-                    "                       SELECT pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT, pm.IS_SEEN_BY_RECEIVER, pm.UPDATED_AT, pm.NEXT_ID, c.level + 1 " +
+                    "                       SELECT pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT,  pm.UPDATED_AT, pm.NEXT_ID, c.level + 1 " +
                     "                       FROM private_message pm " +
                     "                                join CTE c " +
                     "                                     on pm.NEXT_ID = c.id " +
                     "                       where ?1 in (pm.RECEIVER_ID, pm.SENDER_ID) and  ?2 in (pm.RECEIVER_ID, pm.SENDER_ID)  " + " and c.level < ?3 )" +
-                    " select pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT, pm.IS_SEEN_BY_RECEIVER, pm.UPDATED_AT, pm.NEXT_ID" +
+                    " select pm.id, pm.CONTENT, pm.SENDER_ID, pm.RECEIVER_ID, pm.CREATED_AT, pm.UPDATED_AT, pm.NEXT_ID" +
                     " from CTE pm " +
                     " order by id asc ; ";
             session = openSession();

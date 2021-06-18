@@ -33,6 +33,4 @@ public class PrivateMessage extends BaseEntity implements Serializable, Message
     @JoinColumn(name = "NEXT_ID")
     private PrivateMessage nextMessage;
 
-    @Column(name = "IS_SEEN_BY_RECEIVER")
-    private Boolean isSeenByReceiver = false;
 }

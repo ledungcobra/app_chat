@@ -3,7 +3,6 @@ package server.service;
 import server.context.SApplicationContext;
 import server.dao.UserDao;
 import server.entities.FriendOffer;
-import server.entities.Notification;
 import server.entities.PrivateMessage;
 import server.entities.User;
 
@@ -104,9 +103,6 @@ public class UserService extends BaseService<User, Long> {
         );
     }
 
-    public Future<List<Notification>> getNotifications(Long userId) {
-        return service.submit(() -> doTransaction2(() -> notificationDao.getNotifications(userId)));
-    }
 
     public Future<List<PrivateMessage>> getPrivateMessage(Long userId, Long friendId, int numberOfMessages,int offset) {
         return service.submit(() ->
