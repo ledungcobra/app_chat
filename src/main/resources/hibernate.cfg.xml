@@ -19,14 +19,13 @@
         <property name="hibernate.connection.autocommit">false</property>
         <!--        Method to auto generate database-->
 
-<!--        <property name="hbm2ddl.auto">create-drop</property>-->
+        <property name="hbm2ddl.auto">create-drop</property>
 <!--        <property name="format_sql">true</property>-->
 
 
         <mapping class="server.entities.User"/>
         <mapping class="server.entities.VideoCall"/>
         <mapping class="server.entities.Group"/>
-        <mapping class="server.entities.GroupFile"/>
         <mapping class="server.entities.GroupMessage"/>
         <mapping class="server.entities.FriendShip"/>
         <mapping class="server.entities.Notification"/>

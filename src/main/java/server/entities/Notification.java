@@ -1,9 +1,7 @@
 package server.entities;
 
-import common.dto.UserDto;
 import lombok.Getter;
 import lombok.Setter;
-import server.service.BaseService;
 
 import javax.persistence.*;
 

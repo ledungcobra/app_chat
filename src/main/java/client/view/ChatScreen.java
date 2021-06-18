@@ -60,7 +60,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     public static final String SEARCH_KEYWORD = "SEARCH_KEYWORD";
     public static final String SEARCH_DONE = "SEARCH_DONE";
-    private DefaultListModel<NotificationDto> notifyModel;
+    public static final String USER_COMMAND = "USER_COMMAND";
+    public static final String GROUP_COMMAND = "GROUP_COMMAND";
+    public static final String SEARCH_COMMAND = "SEARCH_COMMAND";
     private DefaultListModel<FriendOfferDto> friendOfferListModel;
     private DefaultListModel<FriendDto> friendListModel;
 
@@ -76,6 +78,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         buttonGroup.add(userRadio);
         buttonGroup.add(groupRadio);
+
+        userRadio.setActionCommand(USER_COMMAND);
+        groupRadio.setActionCommand(GROUP_COMMAND);
+
+        userRadio.setSelected(true);
 
         friendChatTabMap = new HashMap<>();
         enterToSubmitCheck.setSelected(true);
@@ -379,9 +386,12 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     public void openSearchResultScreen() {
         getData().put(SEARCH_KEYWORD, searchFriend.getText());
+        if (buttonGroup.getSelection().getActionCommand().equals(USER_COMMAND)) {
+            Consumer<Set<FriendDto>> onSearchDone = this::onSearchDone;
+            getData().put(SEARCH_DONE, onSearchDone);
+        } else {
 
-        Consumer<Set<FriendDto>> onSearchDone = this::onSearchDone;
-        getData().put(SEARCH_DONE, onSearchDone);
+        }
 
         new Navigator<FriendSearchScreen>().navigate(getData(), false);
     }

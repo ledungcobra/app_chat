@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import javax.persistence.*;
+import java.awt.*;
 import java.io.Serializable;
 
 @EqualsAndHashCode
@@ -27,5 +28,9 @@ public class GroupMessage extends BaseEntity implements Serializable, Message {
     @JoinColumn(name = "GROUP_ID")
     @ManyToOne
     private Group groupReceiver;
+
+    @OneToOne
+    @JoinColumn(name = "NEXT_ID")
+    private GroupMessage nextMessage;
 
 }

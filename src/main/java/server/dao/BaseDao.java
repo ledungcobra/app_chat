@@ -46,20 +46,31 @@ public abstract class BaseDao<T extends BaseEntity, ID extends Serializable> {
     }
 
     public T insert(T object) {
-        Session session = this.openSession();
-        session.beginTransaction();
-        session.save(object);
-        session.getTransaction().commit();
-        session.close();
+        Session session = null;
+        try {
+            session = this.openSession();
+            session.beginTransaction();
+            session.save(object);
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+
         return object;
     }
 
     public void update(T object) {
-        Session session = this.openSession();
-        session.beginTransaction();
-        session.update(object);
-        session.getTransaction().commit();
-        session.close();
+        Session session = null;
+        try {
+            session = this.openSession();
+            session.beginTransaction();
+            session.update(object);
+            session.getTransaction().commit();
+        } catch (Exception e) {
+            session.close();
+        }
     }
 
 

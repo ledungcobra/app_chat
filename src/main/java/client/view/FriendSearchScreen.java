@@ -15,16 +15,12 @@ import utils.ScreenStackManager;
 import javax.swing.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static client.context.CApplicationContext.tcpClient;
-import static client.view.ChatScreen.SEARCH_DONE;
-import static client.view.ChatScreen.SEARCH_KEYWORD;
+import static client.view.ChatScreen.*;
 import static common.dto.Command.*;
 
 /**
