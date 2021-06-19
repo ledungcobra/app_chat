@@ -150,7 +150,10 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
         });
 
-        this.friendsList.addListSelectionListener(e -> addNewChatFriendChatTab(e));
+        this.friendsList.addListSelectionListener(e -> {
+            if (e != null && !e.getValueIsAdjusting()) return;
+            addNewChatFriendChatTab(friendsList.getSelectedValue());
+        });
 
         this.consoleMenuItem.addActionListener(e -> onGroupManagementActionPerformed());
         this.leaveGroupBtn.addActionListener(e -> leaveGroupActionPerformed());
@@ -261,10 +264,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         return "   " + friendDto.getDisplayName() + " - " + friendDto.getId() + "    ";
     }
 
-    private void addNewChatFriendChatTab(ListSelectionEvent e) {
-        if (!e.getValueIsAdjusting()) return;
-        JList friendList = (JList) e.getSource();
-        FriendDto friendDto = (FriendDto) friendList.getSelectedValue();
+    private void addNewChatFriendChatTab(FriendDto friendDto) {
         String tabName = generateTabName(friendDto);
         if (friendChatTabMap.containsKey(friendDto)) {
 
@@ -690,6 +690,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         String tabName = generateTabName(receiver);
         int index = chatTabs.indexOfTab(tabName);
 
+        if (index == -1) {
+            addNewChatFriendChatTab(receiver);
+        }
 
         List<PrivateMessageDto> messageDtos = this.friendChatTabMap.get(receiver).getMessageDtos();
 
