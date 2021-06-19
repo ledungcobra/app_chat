@@ -11,6 +11,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
 import utils.Navigator;
 import utils.ScreenStackManager;
 
@@ -21,9 +23,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +33,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static client.context.CApplicationContext.networkThreadService;
-import static client.context.CApplicationContext.tcpClient;
+import static client.context.CApplicationContext.*;
 import static client.view.LoginScreen.*;
 import static common.dto.Command.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
@@ -99,6 +98,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_FRIEND_LIST, userDto.getId()));
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_GROUP_LIST, userDto.getId()));
         tcpClient.sendRequestAsync(new CommandObject(C2S_GET_UNSEEN_FRIEND_OFFERS, userDto.getId()));
+
+
     }
 
     @Override
@@ -276,11 +277,13 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
         }
 
-        JTextArea textArea = new JTextArea();
+        JTextPane textArea = new JTextPane();
         textArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane();
-        textArea.setColumns(20);
-        textArea.setRows(5);
+        textArea.setContentType("text/html");
+
+//        textArea.setColumns(20);
+//        textArea.setRows(5);
         scrollPane.setViewportView(textArea);
 
         chatTabs.addTab(tabName, scrollPane);
@@ -488,6 +491,20 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 break;
             }
             case S2C_RECEIVE_A_PRIVATE_MESSAGE: {
+
+                uiThreadService.submit(() -> {
+
+                    try {
+                        InputStream path = getClass().getResourceAsStream("/sound.wav");
+
+                        AudioStream as = null;
+                        as = new AudioStream(path);
+                        AudioPlayer.player.start(as);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
                 FriendDto sender = Mapper.map(receiveMessage.getSender());
                 if (!friendChatTabMap.containsKey(sender)) {
@@ -662,8 +679,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         for (Component component : components) {
             if (component instanceof JViewport) {
                 for (Component component1 : ((JViewport) component).getComponents()) {
-                    if (component1 instanceof JTextArea) {
-                        String messagesTransformed = String.join("\n", messageDtos.stream().map(m -> {
+                    if (component1 instanceof JTextPane) {
+                        String messagesTransformed = String.join("", messageDtos.stream().map(m -> {
                             String messageText = "";
                             if (m.getSender().getId().equals(userDto.getId())) {
                                 messageText = "you";
@@ -671,9 +688,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                                 messageText = m.getSender().getDisplayName();
                             }
                             messageText += " : " + m.getContent();
-                            return messageText;
+                            return "<div style='padding: 2px;'><span style='margin-bottom:2px;border-radius: 2px;padding:5px;font-size:15px;'>" + messageText + "</span></div>";
                         }).collect(Collectors.toList()));
-                        ((JTextArea) component1).setText(messagesTransformed);
+                        ((JTextPane) component1).setText(messagesTransformed);
                         break out;
                     }
                 }
@@ -760,6 +777,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         jLabel4.setText("Hi");
 
         displayNameLbl.setText("display name");
+
+        chatTabs.setFont(new java.awt.Font("Tahoma", 0, 15)); // NOI18N
 
         chatInput.setColumns(20);
         chatInput.setRows(5);

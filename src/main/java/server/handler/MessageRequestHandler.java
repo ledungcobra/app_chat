@@ -25,13 +25,16 @@ public class MessageRequestHandler extends RequestHandler {
     static Map<String, String> emojis = new HashMap<>();
 
     static {
-        emojis.put(":D", "\uD83D\uDE01");
-        emojis.put(":-)", "\uD83D\uDE0A");
-        emojis.put("=)", "\uD83D\uDE0A");
-        emojis.put("^_^", "\uD83D\uDE0A");
-        emojis.put(":-P", "\uD83D\uDE0B");
-        emojis.put(":(", "\uD83D\uDE22");
-        emojis.put(":kiss", "\uD83D\uDE1A");
+        String color = " rgb(255,200,61)";
+
+        emojis.put(":D", "<span style='font-size:30px; color: " + color + ";'>&#128513;</span>");
+        emojis.put(":-)", "<span style='font-size:30px;color: " + color + ";'>&#128512;</span>");
+        emojis.put(":)", "<span style='font-size:30px;color: " + color + ";'>&#128512;</span>");
+        emojis.put("=)", "<span style='font-size:30px;color: " + color + ";'>&#128522;</span>");
+        emojis.put("T_T", "<span style='font-size:30px;color: " + color + ";'>&#128557;</span>");
+        emojis.put(":-P", "<span style='font-size:30px;color: " + color + ";'>&#128523;</span>");
+        emojis.put(":(", "<span style='font-size:30px;color: " + color + ";'>&#128543;</span>");
+        emojis.put(":|", "<span style='font-size:30px;color: "+color    +";'>&#128528;</span>");
     }
 
     public MessageRequestHandler(ObjectInputStream objectInputStream, ObjectOutputStream objectOutputStream, Socket socket) {

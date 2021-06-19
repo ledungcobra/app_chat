@@ -212,7 +212,10 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
 
             case S2C_CREATE_NEW_GROUP_ACK: {
                 GroupDto groupDto = (GroupDto) commandObject.getPayload();
-                runOnUiThread(() -> addNewGroupToList(groupDto));
+                runOnUiThread(() -> {
+                    addNewGroupToList(groupDto);
+                    JOptionPane.showMessageDialog(this, "Add new group success");
+                });
                 break;
             }
             case S2C_ACCEPT_A_MEMBER_TO_GROUP_ACK: {
@@ -229,6 +232,7 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
 
                 runOnUiThread(() -> {
                     addUserToGroup(userId, groupId);
+                    JOptionPane.showMessageDialog(this, "Add new member success");
                 });
                 break;
             }
@@ -304,6 +308,7 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
     }
 
     private void addNewGroupToList(GroupDto groupDto) {
+        groupComboBox.setSelectedItem(groupDto);
         groupComboModel.addElement(groupDto);
     }
 

@@ -71,6 +71,7 @@ public class GroupChatScreen extends AbstractScreen
         searchBtn.setText("Search");
 
         chatTextArea.setColumns(20);
+        chatTextArea.setFont(new java.awt.Font("Monospaced", 0, 15)); // NOI18N
         chatTextArea.setRows(5);
         jScrollPane1.setViewportView(chatTextArea);
 
