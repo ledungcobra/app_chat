@@ -10,7 +10,7 @@ import java.io.Serializable;
 @Data
 @Entity
 @Table(name = "PRIVATE_MESSAGE")
-public class PrivateMessage extends BaseEntity implements Serializable, Message
+public class PrivateMessage extends BaseEntity implements Serializable
 {
 
     @Id
@@ -32,5 +32,6 @@ public class PrivateMessage extends BaseEntity implements Serializable, Message
     @OneToOne
     @JoinColumn(name = "NEXT_ID")
     private PrivateMessage nextMessage;
+
 
 }

@@ -11,7 +11,7 @@ import java.io.Serializable;
 @Data
 @Entity
 @Table(name = "GROUP_MESSAGE")
-public class GroupMessage extends BaseEntity implements Serializable, Message {
+public class GroupMessage extends BaseEntity implements Serializable {
 
     @Id
     @EqualsAndHashCode.Include

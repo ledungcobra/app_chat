@@ -4,6 +4,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import server.entities.Group;
+import server.entities.Message;
 import server.entities.User;
 
 import javax.persistence.*;
@@ -12,7 +13,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class GroupMessageDto implements Serializable {
+public class GroupMessageDto implements Serializable, Message {
 
     @Id
     @EqualsAndHashCode.Include

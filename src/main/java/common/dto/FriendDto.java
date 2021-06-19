@@ -7,8 +7,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class FriendDto implements Serializable
-{
+public class FriendDto implements Serializable, Receiver {
 
     public FriendDto() {
     }
@@ -24,8 +23,12 @@ public class FriendDto implements Serializable
 
     private String displayName;
 
-    public String toString()
-    {
+    public String toString() {
+        return this.displayName;
+    }
+
+    @Override
+    public String getName() {
         return this.displayName;
     }
 }

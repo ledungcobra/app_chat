@@ -1,6 +1,7 @@
 package common.dto;
 
 import lombok.*;
+import server.entities.Message;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -10,7 +11,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class PrivateMessageDto implements Serializable
+public class PrivateMessageDto implements Serializable, Message
 {
 
     public PrivateMessageDto() {

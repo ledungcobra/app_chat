@@ -7,7 +7,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class UserDto implements Serializable {
+public class UserDto implements Serializable, Receiver {
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -29,6 +29,11 @@ public class UserDto implements Serializable {
 
     @Override
     public String toString() {
+        return this.displayName;
+    }
+
+    @Override
+    public String getName() {
         return this.displayName;
     }
 }

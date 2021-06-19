@@ -10,7 +10,7 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
 @Getter
 @Setter
-public class GroupDto implements Serializable {
+public class GroupDto implements Serializable, Receiver {
     @Id
     @EqualsAndHashCode.Include
     private Long id;

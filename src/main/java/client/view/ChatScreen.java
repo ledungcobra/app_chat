@@ -11,22 +11,24 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import server.entities.Message;
 import sun.audio.AudioPlayer;
 import sun.audio.AudioStream;
 import utils.Navigator;
 import utils.ScreenStackManager;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.*;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.*;
@@ -39,7 +41,6 @@ import static common.dto.Command.*;
 import static javax.swing.JFileChooser.APPROVE_OPTION;
 import static javax.swing.JFileChooser.ERROR_OPTION;
 import static javax.swing.JOptionPane.*;
-import static utils.FileHelper.deleteFileAsync;
 
 /**
  * @author ledun
@@ -48,11 +49,11 @@ import static utils.FileHelper.deleteFileAsync;
 @Getter
 @Setter
 class ContainerObject {
-    private FriendDto friendDto;
-    private List<PrivateMessageDto> messageDtos = new ArrayList<>();
+    private Receiver receiver;
+    private List<Message> messageDtos = new ArrayList<>();
 
-    public ContainerObject(FriendDto friendDto) {
-        this.friendDto = friendDto;
+    public ContainerObject(Receiver receiver) {
+        this.receiver = receiver;
     }
 }
 
@@ -70,7 +71,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     private DefaultListModel<FriendDto> friendListModel;
 
     private UserDto userDto;
-    private Map<FriendDto, ContainerObject> friendChatTabMap;
+    private Map<Receiver, ContainerObject> chatTabMap;
     ButtonGroup buttonGroup;
     private DefaultListModel<GroupDto> groupDtoListModel;
 
@@ -88,7 +89,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         userRadio.setSelected(true);
 
-        friendChatTabMap = new HashMap<>();
+        chatTabMap = new HashMap<>();
         enterToSubmitCheck.setSelected(true);
 
         this.userDto = (UserDto) getData().get(USER);
@@ -152,14 +153,21 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         this.friendsList.addListSelectionListener(e -> {
             if (e != null && !e.getValueIsAdjusting()) return;
-            addNewChatFriendChatTab(friendsList.getSelectedValue());
+            addNewChatTab(friendsList.getSelectedValue());
         });
 
         this.consoleMenuItem.addActionListener(e -> onGroupManagementActionPerformed());
         this.leaveGroupBtn.addActionListener(e -> leaveGroupActionPerformed());
 
+        this.groupsList.addListSelectionListener(e -> {
+            if (e != null && !e.getValueIsAdjusting()) return;
+            addNewChatTab(groupsList.getSelectedValue());
+        });
+
+
     }
 
+    // <editor-fold defaultstate="collapsed desc="">
     private void leaveGroupActionPerformed() {
         GroupDto groupDto = groupsList.getSelectedValue();
         if (groupDto == null) {
@@ -218,6 +226,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         });
     }
 
+    // </editor-fold>
+
+
     private void performSendMessage() {
 
 //        FriendDto friendDto = friendsList.getSelectedValue();
@@ -228,23 +239,25 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         }
 
         String selectedTab = chatTabs.getTitleAt(index);
-        FriendDto friendDto = this.friendChatTabMap.entrySet()
+
+        // Find active receiver
+        Receiver receiver = this.chatTabMap.entrySet()
                 .stream()
                 .filter(e -> selectedTab.equals(this.generateTabName(e.getKey())))
                 .findFirst().map(e -> e.getKey())
                 .orElse(null);
 
-        if (friendDto == null) {
+        if (receiver == null) {
             showMessageDialog(this, "Friend cannot be null");
             return;
         }
         String content = chatInput.getText();
         if (content == null || content.isEmpty()) return;
 
-        List<PrivateMessageDto> messageDtos = friendChatTabMap.get(friendDto).getMessageDtos();
+        List<Message> messageDtos = chatTabMap.get(receiver).getMessageDtos();
         Long prevMessId = null;
         if (messageDtos.size() > 0) {
-            PrivateMessageDto lastMessage = messageDtos.get(messageDtos.size() - 1);
+            Message  lastMessage = messageDtos.get(messageDtos.size() - 1);
             prevMessId = lastMessage.getId();
 
         }
@@ -253,21 +266,24 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         sender.setId(userDto.getId());
 
         String processedInput = chatInput.getText().trim();
-        PrivateMessageDto privateMessageDto = new PrivateMessageDto(prevMessId, processedInput, sender, friendDto, false);
-
-        System.out.println(privateMessageDto);
-        tcpClient.sendRequestAsync(new CommandObject(C2S_SEND_PRIVATE_MESSAGE, privateMessageDto));
+        Message message = null;
+        if(receiver instanceof FriendDto){
+             message = new PrivateMessageDto(prevMessId, processedInput, sender, (FriendDto) receiver, false);
+        }
+        System.out.println(message);
+        tcpClient.sendRequestAsync(new CommandObject(C2S_SEND_PRIVATE_MESSAGE, message));
         chatInput.setText("");
     }
 
-    private String generateTabName(FriendDto friendDto) {
-        return "   " + friendDto.getDisplayName() + " - " + friendDto.getId() + "    ";
+    private String generateTabName(Receiver data) {
+        return "   " + data.getId() + " - " + data.getName() + "    ";
     }
 
-    private void addNewChatFriendChatTab(FriendDto friendDto) {
-        String tabName = generateTabName(friendDto);
-        if (friendChatTabMap.containsKey(friendDto)) {
+    private  void addNewChatTab(Receiver data) {
+        String tabName = null;
+        tabName = generateTabName(data);
 
+        if (chatTabMap.containsKey(data)) {
             // If contain tab
             int index = chatTabs.indexOfTab(tabName);
             if (index != -1) {
@@ -281,8 +297,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         JScrollPane scrollPane = new JScrollPane();
         textArea.setContentType("text/html");
 
-//        textArea.setColumns(20);
-//        textArea.setRows(5);
         scrollPane.setViewportView(textArea);
 
         chatTabs.addTab(tabName, scrollPane);
@@ -319,10 +333,10 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
                 if (selected != null) {
                     chatTabs.remove(selected);
-                    friendChatTabMap.remove(friendDto);
+                    chatTabMap.remove(data);
                     ((JButton) e.getSource()).removeActionListener(this);
 
-                    if (friendChatTabMap.size() == 0) {
+                    if (chatTabMap.size() == 0) {
                         ChatScreen.this.friendsList.clearSelection();
                     }
 
@@ -331,12 +345,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         };
 
         btnClose.addActionListener(actionListener);
-        friendChatTabMap.put(friendDto, new ContainerObject(friendDto));
-        tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), friendDto.getId(), 0, 100)));
-
+        chatTabMap.put(data, new ContainerObject(data));
+        tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), data.getId(), 0, 100)));
     }
 
-
+    // <editor-fold defaultstate="collapsed desc="">
     private void onUnfriendBtnActionPerformed() {
         int[] friendsIds = friendsList.getSelectedIndices();
         if (friendsIds.length == 0) {
@@ -387,14 +400,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     }
 
     private void onLogoutBtnActionPerformed() {
-//        Boolean rememberMe = (Boolean) getData().get(REMEMBER_ME);
-//        if (rememberMe != null && rememberMe) {
-//            deleteFileAsync(AUTH_TXT).thenAcceptAsync(r -> {
-//                if (r) {
-//                    System.out.println("DELETE FILE SUCCESS");
-//                }
-//            });
-//        }
 
         tcpClient.sendRequestAsync(new CommandObject(C2S_LOGOUT));
         finish();
@@ -488,10 +493,10 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_SEND_PRIVATE_MESSAGE_ACK: {
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
-                if (friendChatTabMap.get(receiveMessage.getReceiver()) == null) {
-                    friendChatTabMap.put(receiveMessage.getReceiver(), new ContainerObject(receiveMessage.getReceiver()));
+                if (chatTabMap.get(receiveMessage.getReceiver()) == null) {
+                    chatTabMap.put(receiveMessage.getReceiver(), new ContainerObject(receiveMessage.getReceiver()));
                 }
-                friendChatTabMap.get(receiveMessage.getReceiver()).getMessageDtos()
+                chatTabMap.get(receiveMessage.getReceiver()).getMessageDtos()
                         .add(receiveMessage);
                 runOnUiThread(() ->
                         updatePrivateMessageFor(receiveMessage.getReceiver())
@@ -515,16 +520,16 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
                 PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
                 FriendDto sender = Mapper.map(receiveMessage.getSender());
-                if (!friendChatTabMap.containsKey(sender)) {
-                    friendChatTabMap.put(sender, new ContainerObject(sender));
+                if (!chatTabMap.containsKey(sender)) {
+                    chatTabMap.put(sender, new ContainerObject(sender));
                 }
-                ContainerObject object = friendChatTabMap.get(sender);
+                ContainerObject object = chatTabMap.get(sender);
 
                 if (object != null) {
                     object.getMessageDtos()
                             .add(receiveMessage);
                 } else {
-                    friendChatTabMap.put(sender, new ContainerObject(sender));
+                    chatTabMap.put(sender, new ContainerObject(sender));
                 }
 
                 runOnUiThread(() ->
@@ -534,11 +539,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
             case S2C_GET_PRIVATE_MESSAGES_ACK: {
                 ResponsePrivateMessageDto responsePrivateMessageDto = (ResponsePrivateMessageDto) commandObject.getPayload();
-                if (!this.friendChatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
-                    this.friendChatTabMap
+                if (!this.chatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
+                    this.chatTabMap
                             .put(responsePrivateMessageDto.getFriendDto(), new ContainerObject(responsePrivateMessageDto.getFriendDto()));
                 }
-                this.friendChatTabMap
+                this.chatTabMap
                         .get(responsePrivateMessageDto.getFriendDto())
                         .getMessageDtos()
                         .addAll(responsePrivateMessageDto.getMessageDtoList());
@@ -602,7 +607,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         groupsList.setModel(groupDtoListModel);
     }
 
+    // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed desc="">
     private void receiveFileHandle(CommandObject commandObject) {
         SendFileRequestDto sendFileRequestDto = (SendFileRequestDto) commandObject.getPayload();
         runOnUiThread(() -> {
@@ -642,6 +649,9 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         });
     }
 
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed desc="">
     private void saveFileAsync(byte[] fileContent, String fileName, File folderFile, Runnable success, Consumer<Exception> error) {
         File newFile = new File(folderFile, fileName);
         File finalFile = null;
@@ -686,15 +696,18 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         });
     }
 
-    private void updatePrivateMessageFor(FriendDto receiver) {
+    // </editor-fold>
+
+
+    private <T> void updatePrivateMessageFor(Receiver receiver) {
         String tabName = generateTabName(receiver);
         int index = chatTabs.indexOfTab(tabName);
 
         if (index == -1) {
-            addNewChatFriendChatTab(receiver);
+            addNewChatTab(receiver);
         }
 
-        List<PrivateMessageDto> messageDtos = this.friendChatTabMap.get(receiver).getMessageDtos();
+        List<Message> messageDtos = this.chatTabMap.get(receiver).getMessageDtos();
 
         JScrollPane selectedComponent = (JScrollPane) chatTabs.getComponentAt(index);
         Component[] components = selectedComponent.getComponents();
@@ -724,6 +737,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
     }
 
+    // <editor-fold defaultstate="collapsed desc="">
     private void updateFriendOfferList(List<FriendOfferDto> friendOfferDtos) {
         if (friendOfferListModel == null) {
             this.friendOfferListModel = new DefaultListModel<FriendOfferDto>();
@@ -755,6 +769,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     public void closeHandler() {
         tcpClient.closeHandler(this);
     }
+
+    // </editor-fold>
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
