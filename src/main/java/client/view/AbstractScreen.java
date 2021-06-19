@@ -10,7 +10,7 @@ import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Objects;
-
+@SuppressWarnings({"All"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public abstract class AbstractScreen extends JFrame {
 

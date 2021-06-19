@@ -66,7 +66,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     public static final String SEARCH_DONE = "SEARCH_DONE";
     public static final String USER_COMMAND = "USER_COMMAND";
     public static final String GROUP_COMMAND = "GROUP_COMMAND";
-    public static final String SEARCH_COMMAND = "SEARCH_COMMAND";
     private DefaultListModel<FriendOfferDto> friendOfferListModel;
     private DefaultListModel<FriendDto> friendListModel;
 
@@ -388,14 +387,15 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     }
 
     private void onLogoutBtnActionPerformed() {
-        Boolean rememberMe = (Boolean) getData().get(REMEMBER_ME);
-        if (rememberMe != null && rememberMe) {
-            deleteFileAsync(AUTH_TXT).thenAcceptAsync(r -> {
-                if (r) {
-                    System.out.println("DELETE FILE SUCCESS");
-                }
-            });
-        }
+//        Boolean rememberMe = (Boolean) getData().get(REMEMBER_ME);
+//        if (rememberMe != null && rememberMe) {
+//            deleteFileAsync(AUTH_TXT).thenAcceptAsync(r -> {
+//                if (r) {
+//                    System.out.println("DELETE FILE SUCCESS");
+//                }
+//            });
+//        }
+
         tcpClient.sendRequestAsync(new CommandObject(C2S_LOGOUT));
         finish();
     }
@@ -465,6 +465,14 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 break;
             }
 
+            case S2C_NOTIFY_NEW_FRIEND: {
+                FriendDto friendDto = (FriendDto) commandObject.getPayload();
+                runOnUiThread(() -> {
+                    addNewFriendToList(friendDto);
+                });
+                break;
+            }
+
             case S2C_GET_UNSEEN_FRIEND_OFFERS_ACK: {
                 List<FriendOfferDto> friendOfferDtos = (List<FriendOfferDto>) commandObject.getPayload();
                 runOnUiThread(() -> updateFriendOfferList(friendOfferDtos));
@@ -510,8 +518,15 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 if (!friendChatTabMap.containsKey(sender)) {
                     friendChatTabMap.put(sender, new ContainerObject(sender));
                 }
-                friendChatTabMap.get(sender).getMessageDtos()
-                        .add(receiveMessage);
+                ContainerObject object = friendChatTabMap.get(sender);
+
+                if (object != null) {
+                    object.getMessageDtos()
+                            .add(receiveMessage);
+                } else {
+                    friendChatTabMap.put(sender, new ContainerObject(sender));
+                }
+
                 runOnUiThread(() ->
                         updatePrivateMessageFor(sender)
                 );
@@ -559,6 +574,10 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 break;
         }
 
+    }
+
+    private void addNewFriendToList(FriendDto friendDto) {
+        this.friendListModel.addElement(friendDto);
     }
 
     private void removeAGroup(Long groupId) {
@@ -670,6 +689,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     private void updatePrivateMessageFor(FriendDto receiver) {
         String tabName = generateTabName(receiver);
         int index = chatTabs.indexOfTab(tabName);
+
+
         List<PrivateMessageDto> messageDtos = this.friendChatTabMap.get(receiver).getMessageDtos();
 
         JScrollPane selectedComponent = (JScrollPane) chatTabs.getComponentAt(index);

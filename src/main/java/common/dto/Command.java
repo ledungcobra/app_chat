@@ -138,5 +138,7 @@ public enum Command {
     S2C_DECLINE_USER_ACK,
     S2C_DECLINE_USER_NACK,
 
+    S2C_NOTIFY_NEW_FRIEND,
+
 
 }

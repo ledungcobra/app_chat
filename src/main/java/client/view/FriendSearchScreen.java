@@ -70,6 +70,7 @@ public class FriendSearchScreen extends AbstractScreen implements ResponseHandle
             {
                 onSearchDone.accept(FriendSearchScreen.this.selectedFriend);
                 FriendSearchScreen.this.closeHandler();
+                finish();
             }
 
             @Override
@@ -195,8 +196,6 @@ public class FriendSearchScreen extends AbstractScreen implements ResponseHandle
         jScrollPane1 = new javax.swing.JScrollPane();
         resultList = new javax.swing.JList<>();
         addFriendBtn = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
 
         jScrollPane1.setViewportView(resultList);

@@ -165,7 +165,7 @@ public class UserService extends BaseService<User, Long> {
         return messageDao.addNewMessageToGroup(message.getSender().getId(), message.getGroupReceiver().getId(), message.getContent(), previousMessageId);
     }
 
-    public List<UserPendingDto> getPendingList(Long groupId) {
+    public List<UserPending> getPendingList(Long groupId) {
         return groupDao.getPendingList(groupId);
     }
 
@@ -175,5 +175,9 @@ public class UserService extends BaseService<User, Long> {
 
     public List<Group> getGroupListByUserId(Long userId) {
         return groupDao.findGroupByUserId(userId);
+    }
+
+    public User getUserByFriendOfferId(Long id) {
+        return ((UserDao)userDao).findByFriendOfferId(id);
     }
 }

@@ -109,7 +109,7 @@ public class TCPClient implements Closeable {
                         if (commandObject == null) {
                             isListening.set(false);
                             SwingUtilities.invokeAndWait(() -> {
-                                JOptionPane.showMessageDialog(null, "Stop event loop");
+                                JOptionPane.showMessageDialog(null, "Stop event loop handler");
                             });
                             break out;
                         }

@@ -21,7 +21,6 @@ import static client.context.CApplicationContext.tcpClient;
 /**
  * @author ledun
  */
-
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class GroupControlScreen extends AbstractScreen implements AbstractScreen.NetworkListener, ResponseHandler {
     @EqualsAndHashCode.Include
@@ -159,6 +158,7 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
 
 
     @Override
+    @SuppressWarnings({"All"})
     public void listenOnNetworkEvent(CommandObject commandObject) {
 
         switch (commandObject.getCommand()) {
@@ -300,7 +300,7 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
                 break;
             }
         }
-        userPendingListModel.removeElement(found);
+        userPendingListModel.remove(found);
     }
 
     private void addNewMemberToGroup(UserDto newMember) {
@@ -342,6 +342,10 @@ public class GroupControlScreen extends AbstractScreen implements AbstractScreen
         groupComboModel = new DefaultComboBoxModel<>();
         groupDtoList.forEach(groupComboModel::addElement);
         groupComboBox.setModel(groupComboModel);
+
+        if(groupDtoList.size()>0){
+            tcpClient.sendRequestAsync(new CommandObject(Command.C2S_GET_PENDING_USER_GROUP_LIST, ((GroupDto)groupComboBox.getSelectedItem()).getId()));
+        }
     }
 
     @Override

@@ -18,15 +18,18 @@ public class FriendshipDao extends BaseDao<FriendShip, Long> {
         try {
 
             session = openSession();
-            openSession().createQuery("delete from FriendShip fs where fs.owner.id=:id and fs.partner.id in (:ids)")
+            session.beginTransaction();
+
+            session.createQuery("delete from FriendShip fs where fs.owner.id=:id and fs.partner.id in (:ids)")
                     .setParameter("id", id)
                     .setParameter("ids", friendIds)
                     .executeUpdate();
 
-            openSession().createQuery("delete from FriendShip  fs where fs.owner.id in (:ids) and fs.partner.id = :id")
+            session.createQuery("delete from FriendShip  fs where fs.owner.id in (:ids) and fs.partner.id = :id")
                     .setParameter("id", id)
                     .setParameter("ids", friendIds)
                     .executeUpdate();
+            session.getTransaction().commit();
         } finally {
             session.close();
         }

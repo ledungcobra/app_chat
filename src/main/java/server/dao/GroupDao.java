@@ -7,6 +7,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.transform.Transformers;
 import server.entities.Group;
 import server.entities.User;
+import server.entities.UserPending;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -242,16 +243,14 @@ public class GroupDao extends BaseDao<Group, Long> {
         }
     }
 
-    public List<UserPendingDto> getPendingList(Long groupId) {
+    public List<UserPending> getPendingList(Long groupId) {
         Session session = null;
         try {
             session = openSession();
-            return session.createNativeQuery(
-                    " SELECT ugp.id, u.DISPLAY_NAME as displayName, ugp.USER_ID as userId, u.GROUP_ID as groupdId  FROM USER_GROUP_PENDING ugp JOIN USER u WHERE u.ID = ugp.USER_ID AND ugp.GROUP_ID = ?1 ")
-                    .setParameter(1, groupId)
-                    .setResultTransformer(Transformers.aliasToBean(UserPendingDto.class))
-                    .list();
-
+            return session.createQuery(
+                    "From UserPending up where up.group.id = :groupId", UserPending.class)
+                    .setParameter("groupId", groupId)
+                    .getResultList();
         } catch (Exception e) {
             e.printStackTrace();
             return new ArrayList<>();

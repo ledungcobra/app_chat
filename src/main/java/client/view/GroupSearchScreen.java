@@ -65,6 +65,7 @@ public class GroupSearchScreen extends AbstractScreen implements ResponseHandler
             public void windowClosed(WindowEvent e) {
                 onSearchDone.accept(null);
                 GroupSearchScreen.this.closeHandler();
+                finish();
             }
 
             @Override
@@ -168,8 +169,6 @@ public class GroupSearchScreen extends AbstractScreen implements ResponseHandler
         jScrollPane1 = new javax.swing.JScrollPane();
         resultList = new javax.swing.JList<>();
         joinGroupBtn = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
 
         jScrollPane1.setViewportView(resultList);

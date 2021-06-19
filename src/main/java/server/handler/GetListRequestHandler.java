@@ -6,6 +6,7 @@ import server.context.SApplicationContext;
 import server.entities.FriendOffer;
 import server.entities.Group;
 import server.entities.User;
+import server.entities.UserPending;
 import server.service.UserService;
 
 import java.io.ObjectInputStream;
@@ -151,8 +152,11 @@ public class GetListRequestHandler extends RequestHandler {
                 sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_NACK, "Invalid payload"));
                 return;
             }
-            List<UserPendingDto> userPendingDtos = userService.getPendingList(groupId);
-            sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_ACK, userPendingDtos));
+            List<UserPending> userPendingDtos = userService.getPendingList(groupId);
+            List<UserPendingDto> result = userPendingDtos.stream().map(u -> {
+                return new UserPendingDto(u.getId(), u.getUser().getId(), u.getUser().getDisplayName(), u.getGroup().getId());
+            }).collect(Collectors.toList());
+            sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_ACK, result));
         } catch (Exception exception) {
             sendResponseAsync(new CommandObject(S2C_GET_PENDING_USER_GROUP_LIST_NACK, exception.getMessage()));
             exception.printStackTrace();

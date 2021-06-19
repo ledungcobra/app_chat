@@ -29,5 +29,6 @@
         <mapping class="server.entities.FriendShip"/>
         <mapping class="server.entities.FriendOffer"/>
         <mapping class="server.entities.PrivateMessage"/>
+        <mapping class="server.entities.UserPending"/>
     </session-factory>
 </hibernate-configuration>

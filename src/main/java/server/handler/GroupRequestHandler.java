@@ -65,7 +65,7 @@ public class GroupRequestHandler extends RequestHandler {
                 return;
             }
 
-             userService.removePending(pendingId);
+            userService.removePending(pendingId);
             sendResponseAsync(new CommandObject(S2C_DECLINE_USER_ACK, pendingId));
 
         } catch (Exception e) {
@@ -256,7 +256,7 @@ public class GroupRequestHandler extends RequestHandler {
                 return;
             }
             List<Group> groups = userService.findGroupByKeyword(keyword);
-            sendResponseAsync(new CommandObject(S2C_SEND_JOIN_GROUPS_ACK,
+            sendResponseAsync(new CommandObject(S2C_FIND_GROUP_BY_KEYWORD_ACK,
                     groups.stream().map(Mapper::<Group, GroupDto>map).collect(Collectors.toList())));
 
         } catch (Exception e) {

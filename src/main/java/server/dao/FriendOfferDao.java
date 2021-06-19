@@ -62,13 +62,16 @@ public class FriendOfferDao extends BaseDao<FriendOffer, Long> {
         Session session = null;
         try {
             session = openSession();
+            session.beginTransaction();
             session.createNativeQuery("UPDATE FRIEND_OFFER SET ACCEPTED=0 WHERE ID=:id")
                     .setParameter("id", friendOfferId)
                     .executeUpdate();
+            session.getTransaction().commit();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             session.close();
         }
     }
+
 }

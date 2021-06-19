@@ -14,7 +14,7 @@ public class ScreenStackManager {
 
     private static ScreenStackManager INSTANCE;
 
-    public static ScreenStackManager getInstance() {
+    public synchronized static ScreenStackManager getInstance() {
 
         if (Objects.isNull(INSTANCE)) {
             INSTANCE = new ScreenStackManager();
@@ -28,7 +28,7 @@ public class ScreenStackManager {
         screensStack = new Stack<>();
     }
 
-    public void pushScreen(@NonNull AbstractScreen screen, boolean hideParent) {
+    public  void pushScreen(@NonNull AbstractScreen screen, boolean hideParent) {
         synchronized (screensStack) {
             if (!screensStack.isEmpty() && hideParent) {
                 hideScreen(screensStack.peek());

@@ -7,6 +7,7 @@ import server.entities.User;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class UserDao extends BaseDao<User, Long> {
 
@@ -64,4 +65,19 @@ public class UserDao extends BaseDao<User, Long> {
     }
 
 
+    public User findByFriendOfferId(Long id) {
+        Session session = null;
+        try {
+            session = openSession();
+
+            return session.createQuery("SELECT fo.owner From FriendOffer fo  WHERE fo.id=:id", User.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+
+        } catch (Exception e) {
+            return null;
+        } finally {
+            Objects.requireNonNull(session, "findByFriendOfferId").close();
+        }
+    }
 }
