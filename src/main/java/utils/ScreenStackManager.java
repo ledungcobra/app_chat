@@ -28,7 +28,7 @@ public class ScreenStackManager {
         screensStack = new Stack<>();
     }
 
-    public  void pushScreen(@NonNull AbstractScreen screen, boolean hideParent) {
+    public void pushScreen(@NonNull AbstractScreen screen, boolean hideParent) {
         synchronized (screensStack) {
             if (!screensStack.isEmpty() && hideParent) {
                 hideScreen(screensStack.peek());
@@ -88,13 +88,20 @@ public class ScreenStackManager {
     }
 
     public void popTo(Class<LoginScreen> loginScreenClass) {
-        while (!screensStack.isEmpty()) {
-            if (!screensStack.peek().getClass().equals(loginScreenClass)) {
-                AbstractScreen screen = screensStack.pop();
-                screen.setVisible(false);
-            } else {
-                screensStack.peek().setVisible(true);
+
+        try {
+            synchronized (screensStack) {
+                while (!screensStack.peek().getClass().isAssignableFrom(loginScreenClass)) {
+                    AbstractScreen pop = screensStack.pop();
+                    pop.setVisible(false);
+                    pop.dispose();
+
+                    screensStack.peek().setVisible(true);
+                }
+
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

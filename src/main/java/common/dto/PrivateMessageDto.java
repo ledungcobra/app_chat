@@ -42,4 +42,9 @@ public class PrivateMessageDto implements Serializable, Message
     {
         return this.sender + ": " + this.content;
     }
+
+    @Override
+    public Receiver getReceiver() {
+        return receiver;
+    }
 }

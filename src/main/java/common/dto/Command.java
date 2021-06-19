@@ -140,5 +140,7 @@ public enum Command {
 
     S2C_NOTIFY_NEW_FRIEND,
 
+    S2C_RECEIVE_A_GROUP_MESSAGE
+
 
 }

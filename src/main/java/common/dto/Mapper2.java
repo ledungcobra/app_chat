@@ -13,7 +13,7 @@ public class Mapper2 {
 
 
     public static void main(String[] args) {
-        Map<String,String> emojis = new HashMap<>();
+        Map<String, String> emojis = new HashMap<>();
         emojis.put(":D", "\uD83D\uDE01");
         emojis.put(":-)", "\uD83D\uDE0A");
         emojis.put("=)", "\uD83D\uDE0A");
@@ -21,12 +21,13 @@ public class Mapper2 {
         emojis.put(":-P", "\uD83D\uDE0B");
         emojis.put(":(", "\uD83D\uDE22");
         emojis.put(":kiss", "\uD83D\uDE1A");
-        emojis.entrySet().forEach(e->{
-            System.out.println(e.getKey()+ ": " + e.getValue());
+        emojis.entrySet().forEach(e -> {
+            System.out.println(e.getKey() + ": " + e.getValue());
         });
     }
-    public static <T1, T2> T2 map(T1 source, Class<T2> t2) {
 
+    public static <T1, T2> T2 map(T1 source, Class<T2> t2) {
+        if (source == null) return null;
         Class<T2> outputClass = t2;
         Field[] inputFields = source.getClass().getDeclaredFields();
 
@@ -48,7 +49,13 @@ public class Mapper2 {
                             for (int i = 0; i < objects.size(); i++) {
                                 try {
                                     Package dtoPackage = t2.getPackage();
-                                    Class x = Class.forName(dtoPackage.getName() + "." + objects.get(i).getClass().getSimpleName() + "Dto");
+                                    String className = objects.get(i).getClass().getSimpleName();
+                                    Class x = null;
+                                    if (!className.endsWith("Dto")) {
+                                        x = Class.forName(dtoPackage.getName() + "." + objects.get(i).getClass().getSimpleName() + "Dto");
+                                    } else {
+                                        x = objects.get(i).getClass();
+                                    }
                                     result.add(map(objects.get(i), x));
                                 } catch (ClassNotFoundException e) {
                                     e.printStackTrace();
@@ -67,7 +74,13 @@ public class Mapper2 {
                             } else {
                                 try {
                                     Package dtoPackage = t2.getPackage();
-                                    Class x = Class.forName(dtoPackage.getName() + "." + inputField.getType().getSimpleName() + "Dto");
+                                    Class y = inputField.getType();
+                                    Class<?> x;
+                                    if (!y.getSimpleName().endsWith("Dto")) {
+                                        x = Class.forName(dtoPackage.getName() + "." + inputField.getType().getSimpleName() + "Dto");
+                                    } else {
+                                        x = Class.forName(dtoPackage.getName() + "." + inputField.getType().getSimpleName());
+                                    }
                                     outputField.set(output, map(inputField.get(source), x));
                                 } catch (ClassNotFoundException e) {
                                     e.printStackTrace();

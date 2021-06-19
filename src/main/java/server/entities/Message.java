@@ -1,5 +1,6 @@
 package server.entities;
 
+import common.dto.Receiver;
 import common.dto.UserDto;
 
 public interface Message {
@@ -8,5 +9,7 @@ public interface Message {
     String getContent();
 
     UserDto getSender();
+
+    Receiver getReceiver();
 
 }

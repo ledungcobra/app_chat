@@ -30,5 +30,6 @@
         <mapping class="server.entities.FriendOffer"/>
         <mapping class="server.entities.PrivateMessage"/>
         <mapping class="server.entities.UserPending"/>
+        <mapping class="server.entities.UserGroup"/>
     </session-factory>
 </hibernate-configuration>

@@ -91,19 +91,6 @@ public class TCPClient implements Closeable {
                 try {
                     CommandObject commandObject = readObjectFromInputStream();
                     System.err.println("Catch " + commandObject);
-//                    for (int i = 0; i < this.handlers.size(); i++) {
-//                        System.out.println("Number of listener is " + handlers.size());
-//                        if (commandObject == null) {
-//                            isListening.set(false);
-//                            SwingUtilities.invokeAndWait(() -> {
-//                                JOptionPane.showMessageDialog(null, "Stop event loop");
-//                            });
-//                            break out;
-//                        }
-//                        System.out.println("RECEIVED " + commandObject + " passs to " + handlers.get(i).getClass().getSimpleName());
-//                        handlers.get(i).listenOnNetworkEvent(commandObject);
-//                    }
-
                     for (ResponseHandler handler : handlers) {
                         System.out.println("Number of listener is " + handlers.size());
                         if (commandObject == null) {
@@ -111,6 +98,9 @@ public class TCPClient implements Closeable {
                             SwingUtilities.invokeAndWait(() -> {
                                 JOptionPane.showMessageDialog(null, "Stop event loop handler");
                             });
+                            for (ResponseHandler handler2 : handlers) {
+                                handler2.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
+                            }
                             break out;
                         }
                         System.out.println("RECEIVED " + commandObject + " passs to " + handler.getClass().getSimpleName());
@@ -126,10 +116,8 @@ public class TCPClient implements Closeable {
                     } catch (InterruptedException | InvocationTargetException interruptedException) {
                         interruptedException.printStackTrace();
                     } finally {
-                        synchronized (handlers) {
-                            for (ResponseHandler handler : handlers) {
-                                handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
-                            }
+                        for (ResponseHandler handler : handlers) {
+                            handler.listenOnNetworkEvent(new CommandObject(Command.SERVER_STOP_SIGNAL));
                         }
                     }
                     break;
@@ -178,15 +166,11 @@ public class TCPClient implements Closeable {
 
 
     public void closeHandler(ResponseHandler handler) {
-        synchronized (this.handlers) {
-            this.handlers.remove(handler);
-        }
+        this.handlers.remove(handler);
     }
 
     public void registerListener(ResponseHandler handler) {
-        synchronized (this.handlers) {
-            this.handlers.add(handler);
-        }
+        this.handlers.add(handler);
     }
 
     /**

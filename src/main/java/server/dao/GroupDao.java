@@ -182,12 +182,12 @@ public class GroupDao extends BaseDao<Group, Long> {
             session.beginTransaction();
 
             session.createNativeQuery(
-                    "  INSERT INTO USER_GROUP(USER_ID, GROUP_ID) VALUES " +
-                            "   SELECT USER_ID, GROUP_ID WHERE ID = ?1")
+                    "  INSERT INTO USER_GROUP(USER_ID, GROUP_ID)  " +
+                            "   SELECT USER_ID, GROUP_ID FROM USER_GROUP_PENDING WHERE ID = ?1")
                     .setParameter(1, pendingId)
                     .executeUpdate();
             User user = session.createNativeQuery(
-                    "SELECT u.* FROM USER u JOIN USER_GROUP ug ON u.ID = ug.USER_ID AND ug.ID = LAST_INSERT_ID()", User.class)
+                    "SELECT u.* FROM USER u JOIN USER_GROUP ug ON u.ID = ug.USER_ID AND ug.USER_ID = LAST_INSERT_ID()", User.class)
                     .getSingleResult();
 
             Group group = session.createNativeQuery(

@@ -10,11 +10,11 @@ import java.util.List;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class ResponsePrivateMessageDto implements Serializable {
+public class ResponseMessageDto implements Serializable {
     private FriendDto friendDto;
     private List<PrivateMessageDto> messageDtoList;
 
-    public ResponsePrivateMessageDto(FriendDto friendDto, List<PrivateMessageDto> messageDtoList) {
+    public ResponseMessageDto(FriendDto friendDto, List<PrivateMessageDto> messageDtoList) {
         this.friendDto = friendDto;
         this.messageDtoList = messageDtoList;
     }

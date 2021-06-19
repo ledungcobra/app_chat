@@ -24,11 +24,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.*;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.*;
@@ -244,7 +242,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         Receiver receiver = this.chatTabMap.entrySet()
                 .stream()
                 .filter(e -> selectedTab.equals(this.generateTabName(e.getKey())))
-                .findFirst().map(e -> e.getKey())
+                .findFirst().map(Map.Entry::getKey)
                 .orElse(null);
 
         if (receiver == null) {
@@ -257,9 +255,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         List<Message> messageDtos = chatTabMap.get(receiver).getMessageDtos();
         Long prevMessId = null;
         if (messageDtos.size() > 0) {
-            Message  lastMessage = messageDtos.get(messageDtos.size() - 1);
+            Message lastMessage = messageDtos.get(messageDtos.size() - 1);
             prevMessId = lastMessage.getId();
-
         }
 
         val sender = new UserDto();
@@ -267,11 +264,17 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
         String processedInput = chatInput.getText().trim();
         Message message = null;
-        if(receiver instanceof FriendDto){
-             message = new PrivateMessageDto(prevMessId, processedInput, sender, (FriendDto) receiver, false);
+        if (receiver instanceof FriendDto) {
+            message = new PrivateMessageDto(prevMessId, processedInput, sender, (FriendDto) receiver, false);
+            System.out.println("Send private message" + message);
+            tcpClient.sendRequestAsync(new CommandObject(C2S_SEND_PRIVATE_MESSAGE, message));
+
+        } else if (receiver instanceof GroupDto) {
+            message = new GroupMessageDto(prevMessId, content, sender, receiver);
+            System.out.println("Send group message" + message);
+            tcpClient.sendRequestAsync(new CommandObject(C2S_SEND_GROUP_MESSAGE, message));
         }
-        System.out.println(message);
-        tcpClient.sendRequestAsync(new CommandObject(C2S_SEND_PRIVATE_MESSAGE, message));
+
         chatInput.setText("");
     }
 
@@ -279,11 +282,11 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         return "   " + data.getId() + " - " + data.getName() + "    ";
     }
 
-    private  void addNewChatTab(Receiver data) {
+    private void addNewChatTab(Receiver receiver) {
         String tabName = null;
-        tabName = generateTabName(data);
+        tabName = generateTabName(receiver);
 
-        if (chatTabMap.containsKey(data)) {
+        if (chatTabMap.containsKey(receiver)) {
             // If contain tab
             int index = chatTabs.indexOfTab(tabName);
             if (index != -1) {
@@ -292,12 +295,12 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             }
         }
 
-        JTextPane textArea = new JTextPane();
-        textArea.setEditable(false);
+        JTextPane chatPane = new JTextPane();
+        chatPane.setEditable(false);
         JScrollPane scrollPane = new JScrollPane();
-        textArea.setContentType("text/html");
+        chatPane.setContentType("text/html");
 
-        scrollPane.setViewportView(textArea);
+        scrollPane.setViewportView(chatPane);
 
         chatTabs.addTab(tabName, scrollPane);
         int index = chatTabs.indexOfTab(tabName);
@@ -333,11 +336,15 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
                 if (selected != null) {
                     chatTabs.remove(selected);
-                    chatTabMap.remove(data);
+                    chatTabMap.remove(receiver);
                     ((JButton) e.getSource()).removeActionListener(this);
 
                     if (chatTabMap.size() == 0) {
-                        ChatScreen.this.friendsList.clearSelection();
+                        if (receiver instanceof FriendDto) {
+                            ChatScreen.this.friendsList.clearSelection();
+                        } else {
+                            ChatScreen.this.groupsList.clearSelection();
+                        }
                     }
 
                 }
@@ -345,8 +352,12 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
         };
 
         btnClose.addActionListener(actionListener);
-        chatTabMap.put(data, new ContainerObject(data));
-        tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), data.getId(), 0, 100)));
+        chatTabMap.put(receiver, new ContainerObject(receiver));
+        if (receiver instanceof FriendDto) {
+            tcpClient.sendRequestAsync(new CommandObject(C2S_GET_PRIVATE_MESSAGES, new RequestPrivateMessageDto(userDto.getId(), receiver.getId(), 0, 100)));
+        } else if (receiver instanceof GroupDto) {
+            tcpClient.sendRequestAsync(new CommandObject(C2S_GET_GROUP_MESSAGES, new Long[]{receiver.getId(), 100L}));
+        }
     }
 
     // <editor-fold defaultstate="collapsed desc="">
@@ -487,19 +498,57 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
             case S2C_SEND_ACCEPT_FRIEND_OFFERS_ACK:
                 int selectedIndex = this.friendOfferJList.getSelectedIndex();
                 this.friendOfferListModel.remove(selectedIndex);
+                break;
             case S2C_SEND_UNFRIEND_REQUEST_ACK: {
                 tcpClient.sendRequestAsync(new CommandObject(C2S_GET_FRIEND_LIST, userDto.getId()));
                 break;
             }
+
+
+            case S2S_SEND_GROUP_MESSAGE_ACK:
             case S2C_SEND_PRIVATE_MESSAGE_ACK: {
-                PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
+                Message receiveMessage = (Message) commandObject.getPayload();
                 if (chatTabMap.get(receiveMessage.getReceiver()) == null) {
                     chatTabMap.put(receiveMessage.getReceiver(), new ContainerObject(receiveMessage.getReceiver()));
                 }
                 chatTabMap.get(receiveMessage.getReceiver()).getMessageDtos()
                         .add(receiveMessage);
                 runOnUiThread(() ->
-                        updatePrivateMessageFor(receiveMessage.getReceiver())
+                        updateMessageFor(receiveMessage.getReceiver())
+                );
+                break;
+            }
+
+            case S2C_RECEIVE_A_GROUP_MESSAGE: {
+                uiThreadService.submit(() -> {
+
+                    try {
+                        InputStream path = getClass().getResourceAsStream("/sound.wav");
+                        AudioStream as = null;
+                        as = new AudioStream(path);
+                        AudioPlayer.player.start(as);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
+                Message receiveMessage = (Message) commandObject.getPayload();
+                Receiver receiver = receiveMessage.getReceiver();
+
+                if (!chatTabMap.containsKey(receiver)) {
+                    chatTabMap.put(receiver, new ContainerObject(receiver));
+                }
+                ContainerObject object = chatTabMap.get(receiver);
+
+                if (object != null) {
+                    object.getMessageDtos()
+                            .add(receiveMessage);
+                } else {
+                    chatTabMap.put(receiver, new ContainerObject(receiver));
+                }
+
+                runOnUiThread(() ->
+                        updateMessageFor(receiver)
                 );
                 break;
             }
@@ -509,7 +558,6 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
 
                     try {
                         InputStream path = getClass().getResourceAsStream("/sound.wav");
-
                         AudioStream as = null;
                         as = new AudioStream(path);
                         AudioPlayer.player.start(as);
@@ -518,7 +566,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                     }
                 });
 
-                PrivateMessageDto receiveMessage = (PrivateMessageDto) commandObject.getPayload();
+                Message receiveMessage = (Message) commandObject.getPayload();
                 FriendDto sender = Mapper.map(receiveMessage.getSender());
                 if (!chatTabMap.containsKey(sender)) {
                     chatTabMap.put(sender, new ContainerObject(sender));
@@ -533,24 +581,45 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 }
 
                 runOnUiThread(() ->
-                        updatePrivateMessageFor(sender)
+                        updateMessageFor(sender)
                 );
                 break;
             }
             case S2C_GET_PRIVATE_MESSAGES_ACK: {
-                ResponsePrivateMessageDto responsePrivateMessageDto = (ResponsePrivateMessageDto) commandObject.getPayload();
-                if (!this.chatTabMap.containsKey(responsePrivateMessageDto.getFriendDto())) {
+                ResponseMessageDto responseMessageDto = (ResponseMessageDto) commandObject.getPayload();
+                if (!this.chatTabMap.containsKey(responseMessageDto.getFriendDto())) {
                     this.chatTabMap
-                            .put(responsePrivateMessageDto.getFriendDto(), new ContainerObject(responsePrivateMessageDto.getFriendDto()));
+                            .put(responseMessageDto.getFriendDto(), new ContainerObject(responseMessageDto.getFriendDto()));
                 }
                 this.chatTabMap
-                        .get(responsePrivateMessageDto.getFriendDto())
+                        .get(responseMessageDto.getFriendDto())
                         .getMessageDtos()
-                        .addAll(responsePrivateMessageDto.getMessageDtoList());
-                runOnUiThread(() -> updatePrivateMessageFor(responsePrivateMessageDto.getFriendDto()));
+                        .addAll(responseMessageDto.getMessageDtoList());
+                runOnUiThread(() -> updateMessageFor(responseMessageDto.getFriendDto()));
 
                 break;
             }
+
+            case S2C_GET_GROUP_MESSAGES_ACK: {
+                List<Message> messages = (List<Message>) ((Object[]) commandObject.getPayload())[0];
+                Long groupID = (Long) ((Object[]) commandObject.getPayload())[1];
+                Receiver receiver = null;
+                for (int i = 0; i < groupDtoListModel.size(); i++) {
+                    if (groupID != null && groupID.equals(groupDtoListModel.get(i).getId())) {
+                        receiver = groupDtoListModel.get(i);
+                        break;
+                    }
+                }
+
+                this.chatTabMap
+                        .get(receiver)
+                        .getMessageDtos()
+                        .addAll(messages);
+                Receiver finalReceiver = receiver;
+                runOnUiThread(() -> updateMessageFor(finalReceiver));
+                break;
+            }
+
 
             case S2C_RECEIVE_FILE: {
                 receiveFileHandle(commandObject);
@@ -563,7 +632,8 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                 });
                 break;
             }
-
+            case S2S_SEND_GROUP_MESSAGE_NACK:
+            case S2C_GET_GROUP_MESSAGES_NACK:
             case S2C_LEAVE_GROUP_NACK:
             case S2S_SEND_PRIVATE_FILE_ACK:
             case S2S_SEND_PRIVATE_FILE_NACK:
@@ -699,7 +769,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
     // </editor-fold>
 
 
-    private <T> void updatePrivateMessageFor(Receiver receiver) {
+    private <T> void updateMessageFor(Receiver receiver) {
         String tabName = generateTabName(receiver);
         int index = chatTabs.indexOfTab(tabName);
 

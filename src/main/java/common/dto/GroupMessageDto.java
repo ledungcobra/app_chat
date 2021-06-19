@@ -27,8 +27,37 @@ public class GroupMessageDto implements Serializable, Message {
 
     private GroupMessageDto nextMessage;
 
+    public GroupMessageDto() {
+
+    }
+
+    public GroupMessageDto(Long id, String content, UserDto sender, Receiver receiver) {
+        this.id = id;
+        this.content = content;
+        this.sender = sender;
+        this.groupReceiver = (GroupDto) receiver;
+    }
+
+    //TODO
+//    @Override
+//    public String toString() {
+//        return this.sender + ": " + this.content;
+//    }
+
+
     @Override
     public String toString() {
-        return this.sender + ": " + this.content;
+        return "GroupMessageDto{" +
+                "id=" + id +
+                ", content='" + content + '\'' +
+                ", sender=" + sender +
+                ", groupReceiver=" + groupReceiver +
+                ", nextMessage=" + nextMessage +
+                '}';
+    }
+
+    @Override
+    public Receiver getReceiver() {
+        return groupReceiver;
     }
 }

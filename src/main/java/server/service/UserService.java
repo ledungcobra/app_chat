@@ -161,8 +161,8 @@ public class UserService extends BaseService<User, Long> {
         return messageDao.getAllMessage(groupId, numberOfMessages);
     }
 
-    public GroupMessage addGroupMessage(GroupMessage message, Long previousMessageId) {
-        return messageDao.addNewMessageToGroup(message.getSender().getId(), message.getGroupReceiver().getId(), message.getContent(), previousMessageId);
+    public GroupMessage addGroupMessage(Long senderId, Long  groupId,String content,Long previousMessageId) {
+        return messageDao.addNewMessageToGroup(senderId,groupId, content, previousMessageId);
     }
 
     public List<UserPending> getPendingList(Long groupId) {

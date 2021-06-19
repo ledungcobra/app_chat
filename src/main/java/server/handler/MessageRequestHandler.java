@@ -4,6 +4,7 @@ import common.dto.*;
 import server.entities.GroupMessage;
 import server.entities.PrivateMessage;
 import server.entities.User;
+import utils.SocketExtension;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -34,7 +34,7 @@ public class MessageRequestHandler extends RequestHandler {
         emojis.put("T_T", "<span style='font-size:30px;color: " + color + ";'>&#128557;</span>");
         emojis.put(":-P", "<span style='font-size:30px;color: " + color + ";'>&#128523;</span>");
         emojis.put(":(", "<span style='font-size:30px;color: " + color + ";'>&#128543;</span>");
-        emojis.put(":|", "<span style='font-size:30px;color: "+color    +";'>&#128528;</span>");
+        emojis.put(":|", "<span style='font-size:30px;color: " + color + ";'>&#128528;</span>");
     }
 
     public MessageRequestHandler(ObjectInputStream objectInputStream, ObjectOutputStream objectOutputStream, Socket socket) {
@@ -58,28 +58,46 @@ public class MessageRequestHandler extends RequestHandler {
     }
 
     /**
-     * payload is [GroupMessageDto, previousMessageId]
+     * payload is GroupMessageDto
      *
      * @param commandObject
      */
     private void sendGroupMessage(CommandObject commandObject) {
         try {
-            Object[] payload = (Object[]) commandObject.getPayload();
-            if (payload == null) {
+            GroupMessageDto groupMessageDto = (GroupMessageDto) commandObject.getPayload();
+            if (groupMessageDto == null) {
                 sendResponseAsync(new CommandObject(S2S_SEND_GROUP_MESSAGE_NACK, "Payload is invalid"));
                 return;
             }
-            GroupMessageDto groupMessageDto = (GroupMessageDto) payload[0];
 
             groupMessageDto.setContent(processingMessage(groupMessageDto.getContent()));
-            Long previousMessageId = (Long) payload[1];
+            Long previousMessageId = groupMessageDto.getId();
             if (groupMessageDto == null) {
                 sendResponseAsync(new CommandObject(Command.S2S_SEND_GROUP_MESSAGE_NACK, "Invalid payload"));
                 return;
             }
 
-            GroupMessage groupMessage = userService.addGroupMessage(Mapper2.map(groupMessageDto, GroupMessage.class), previousMessageId);
-            sendResponseAsync(new CommandObject(S2S_SEND_GROUP_MESSAGE_ACK, Mapper2.map(groupMessage, GroupMessageDto.class)));
+            groupMessageDto.setId(null);
+            Long senderId = groupMessageDto.getSender().getId();
+            Long groupId = groupMessageDto.getGroupReceiver().getId();
+            String content = groupMessageDto.getContent();
+
+            GroupMessage groupMessage = userService.addGroupMessage(senderId, groupId, content, previousMessageId);
+
+            GroupMessageDto dto = new GroupMessageDto(groupMessage.getId(), groupMessage.getContent(),
+                    Mapper.map(getCurrentUser()), Mapper.map(groupMessage.getGroupReceiver())
+            );
+
+            dto.setGroupReceiver(Mapper.map(groupMessage.getGroupReceiver()));
+
+            List<User> users = userService.getAllMembers(groupId);
+            users.forEach(u -> {
+                if (!u.equals(getCurrentUser())) {
+                    SocketExtension.sendResponseToSocket(getFriendSocket(u).orElse(null), new CommandObject(S2C_RECEIVE_A_GROUP_MESSAGE, dto));
+                }
+            });
+            sendResponseAsync(new CommandObject(S2S_SEND_GROUP_MESSAGE_ACK, dto));
+
         } catch (Exception exception) {
             sendResponseAsync(new CommandObject(Command.S2S_SEND_GROUP_MESSAGE_NACK, exception.getMessage()));
         }
@@ -105,7 +123,7 @@ public class MessageRequestHandler extends RequestHandler {
                     .map(m -> Mapper2.map(m, GroupMessageDto.class))
                     .collect(Collectors.toList());
 
-            sendResponseAsync(new CommandObject(S2C_GET_GROUP_MESSAGES_ACK, messageDtos));
+            sendResponseAsync(new CommandObject(S2C_GET_GROUP_MESSAGES_ACK, new Object[]{messageDtos, groupId}));
         } catch (Exception exception) {
             exception.printStackTrace();
             sendResponseAsync(new CommandObject(S2C_GET_GROUP_MESSAGES_NACK, exception.getMessage()));
@@ -132,7 +150,7 @@ public class MessageRequestHandler extends RequestHandler {
                         return privateMessageDto;
                     }).collect(Collectors.toList());
 
-            sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_ACK, new ResponsePrivateMessageDto(Mapper.map(friend), privateMessageDtos)));
+            sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_ACK, new ResponseMessageDto(Mapper.map(friend), privateMessageDtos)));
         } catch (InterruptedException | ExecutionException e) {
             sendResponseAsync(new CommandObject(S2C_GET_PRIVATE_MESSAGES_NACK, e.getMessage()));
             e.printStackTrace();
