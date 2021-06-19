@@ -17,11 +17,15 @@ public class CApplicationContext {
         // 1 thread for listening incoming notification
         networkThreadService = Executors.newFixedThreadPool(6);
         uiThreadService = Executors.newFixedThreadPool(3);
+
     }
 
     public static void init(String host, int port) {
         tcpClient = new TCPClient(host, port);
     }
 
+    public static void start(){
+        System.out.println("START");
+    }
 
 }

@@ -1,6 +1,7 @@
 package server.handler;
 
 import common.dto.*;
+import server.entities.Group;
 import server.entities.GroupMessage;
 import server.entities.PrivateMessage;
 import server.entities.User;
@@ -85,7 +86,7 @@ public class MessageRequestHandler extends RequestHandler {
             GroupMessage groupMessage = userService.addGroupMessage(senderId, groupId, content, previousMessageId);
 
             GroupMessageDto dto = new GroupMessageDto(groupMessage.getId(), groupMessage.getContent(),
-                    Mapper.map(getCurrentUser()), Mapper.map(groupMessage.getGroupReceiver())
+                    Mapper.<User,UserDto>map(getCurrentUser()), Mapper.<Group, GroupDto>map(Mapper.map(groupMessage.getGroupReceiver()))
             );
 
             dto.setGroupReceiver(Mapper.map(groupMessage.getGroupReceiver()));

@@ -15,15 +15,10 @@ import static client.context.CApplicationContext.tcpClient;
 
 public class CAppRunner {
     public static void main(String[] args) throws ClassNotFoundException, InterruptedException, InvocationTargetException {
-        Class.forName(CApplicationContext.class.getName());
+        CApplicationContext.start();
         try {
 
-            Map<String,Object> data = new HashMap<>();
-            if(args.length>0){
-                System.out.println(Arrays.toString(args));
-                data.put("USERNAME",args[0]);
-                data.put("PASSWORD",args[1]);
-            }
+            Map<String, Object> data = new HashMap<>();
             SwingUtilities.invokeAndWait(() -> new Navigator<LoginScreen>().navigate(data));
         } catch (Exception e) {
             e.printStackTrace();

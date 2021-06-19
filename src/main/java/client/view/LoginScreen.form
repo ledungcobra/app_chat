@@ -40,8 +40,7 @@
                       <EmptySpace pref="389" max="32767" attributes="0"/>
                       <Group type="103" groupAlignment="0" max="-2" attributes="0">
                           <Component id="loginBtn" max="32767" attributes="0"/>
-                          <Component id="registerBtn" alignment="0" max="32767" attributes="0"/>
-                          <Component id="rememberMeCheck" alignment="0" min="-2" pref="194" max="-2" attributes="0"/>
+                          <Component id="registerBtn" alignment="0" pref="194" max="32767" attributes="0"/>
                       </Group>
                   </Group>
                   <Group type="102" alignment="0" attributes="0">
@@ -66,11 +65,7 @@
           <Group type="102" alignment="0" attributes="0">
               <EmptySpace min="-2" pref="34" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="1" attributes="0">
-                  <Group type="102" attributes="0">
-                      <Component id="rememberMeCheck" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace max="-2" attributes="0"/>
-                      <Component id="registerBtn" min="-2" max="-2" attributes="0"/>
-                  </Group>
+                  <Component id="registerBtn" min="-2" max="-2" attributes="0"/>
                   <Group type="102" alignment="1" attributes="0">
                       <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
                       <EmptySpace type="separate" max="-2" attributes="0"/>
@@ -131,11 +126,6 @@
     <Component class="javax.swing.JButton" name="loginBtn">
       <Properties>
         <Property name="text" type="java.lang.String" value="Login"/>
-      </Properties>
-    </Component>
-    <Component class="javax.swing.JCheckBox" name="rememberMeCheck">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="Remember me"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="registerBtn">

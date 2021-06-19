@@ -22,7 +22,7 @@ public class GroupDao extends BaseDao<Group, Long> {
         Session session = null;
         try {
             session = openSession();
-            return session.createNativeQuery("SELECT * FROM USER_GROUP ug INNER JOIN USER u on ug.USER_ID = u.id " +
+            return session.createNativeQuery("SELECT u.* FROM USER_GROUP ug INNER JOIN USER u on ug.USER_ID = u.id " +
                     "WHERE ug.GROUP_ID = ?1  ", User.class)
                     .setParameter(1, groupId)
                     .getResultList();
@@ -187,7 +187,7 @@ public class GroupDao extends BaseDao<Group, Long> {
                     .setParameter(1, pendingId)
                     .executeUpdate();
             User user = session.createNativeQuery(
-                    "SELECT u.* FROM USER u JOIN USER_GROUP ug ON u.ID = ug.USER_ID AND ug.USER_ID = LAST_INSERT_ID()", User.class)
+                    "SELECT u.* FROM USER u JOIN USER_GROUP ug ON u.ID = ug.USER_ID AND ug.ID = LAST_INSERT_ID()", User.class)
                     .getSingleResult();
 
             Group group = session.createNativeQuery(

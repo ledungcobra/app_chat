@@ -19,7 +19,7 @@
         <property name="hibernate.connection.autocommit">false</property>
         <!--        Method to auto generate database-->
 
-<!--        <property name="hbm2ddl.auto">create-drop</property>-->
+        <property name="hbm2ddl.auto">validate</property>
 <!--        <property name="format_sql">true</property>-->
 
 

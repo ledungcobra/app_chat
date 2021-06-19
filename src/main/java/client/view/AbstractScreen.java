@@ -10,12 +10,13 @@ import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Objects;
+
 @SuppressWarnings({"All"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public abstract class AbstractScreen extends JFrame {
 
     @EqualsAndHashCode.Include
-    protected  String screenName;
+    protected String screenName;
 
     public interface NetworkListener {
         void registerNetworkListener();
@@ -78,18 +79,22 @@ public abstract class AbstractScreen extends JFrame {
     public void setVisible(boolean b) {
         super.setVisible(b);
 
-        if (this instanceof NetworkListener) {
-            if (b) {
-                System.out.println("Add listener for " + this.getClass().getSimpleName());
-                ((NetworkListener) this).registerNetworkListener();
+        try {
+            if (this instanceof NetworkListener) {
+                if (b) {
+                    System.out.println("Add listener for " + this.getClass().getSimpleName());
+                    ((NetworkListener) this).registerNetworkListener();
+                }
             }
-        }
 
-        if (this instanceof ResponseHandler) {
-            if (!b) {
-                System.out.println("Close listener for" + this.getClass().getSimpleName());
-                ((ResponseHandler) this).closeHandler();
+            if (this instanceof ResponseHandler) {
+                if (!b) {
+                    System.out.println("Close listener for" + this.getClass().getSimpleName());
+                    ((ResponseHandler) this).closeHandler();
+                }
             }
+        } catch (Exception e) {
+            System.out.println("You dont have server setup yet");
         }
     }
 

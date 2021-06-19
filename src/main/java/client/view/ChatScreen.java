@@ -794,7 +794,7 @@ public class ChatScreen extends AbstractScreen implements ResponseHandler, Netwo
                             } else {
                                 messageText = m.getSender().getDisplayName();
                             }
-                            messageText += " : " + m.getContent();
+                            messageText += " : " + m.getContent().replace("\n","<br>");
                             return "<div style='padding: 2px;'><span style='margin-bottom:2px;border-radius: 2px;padding:5px;font-size:15px;'>" + messageText + "</span></div>";
                         }).collect(Collectors.toList()));
                         ((JTextPane) component1).setText(messagesTransformed);
